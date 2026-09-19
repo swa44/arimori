@@ -11,7 +11,7 @@
   --paper-deep: #e9e1d2;
   --white: #fffdf8;
   --line: rgba(74, 68, 57, 0.14);
-  --nav-height: 76px;
+  --nav-height: 68px;
   --shadow: 0 18px 44px rgba(80, 67, 44, 0.11);
 }
 
@@ -205,7 +205,7 @@ main {
   font-weight: 650;
   gap: 3px;
   justify-content: center;
-  min-height: 64px;
+  min-height: 58px;
   position: relative;
   transition: color 180ms ease, transform 180ms ease;
 }
@@ -227,16 +227,6 @@ main {
 
 .bottom-nav__item.is-active .bottom-nav__icon {
   background: color-mix(in srgb, currentColor 13%, transparent);
-}
-
-.bottom-nav__item.is-active::after {
-  background: currentColor;
-  border-radius: 10px 10px 0 0;
-  bottom: 0;
-  content: "";
-  height: 3px;
-  position: absolute;
-  width: 22px;
 }
 
 .tone-olive.is-active { color: var(--brand-olive); }
