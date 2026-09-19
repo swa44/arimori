@@ -1,10 +1,12 @@
-import { MapPinned, Sparkles, Theater } from "lucide-react";
+import { BookOpen, Disc3, HeartHandshake, MapPinned, Theater } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 const performances = [
-  { icon: Theater, title: "기획공연", text: "아리모리만의 이야기와 색을 담아 계절과 공간에 어울리는 무대를 만듭니다." },
-  { icon: MapPinned, title: "찾아가는 문화예술", text: "마을, 학교, 복지시설 등 관객이 있는 곳으로 찾아가 가까이에서 호흡합니다." },
-  { icon: Sparkles, title: "축제·행사 협업", text: "행사의 성격과 관객에 맞춰 전통의 흥을 친근하고 생동감 있게 구성합니다." },
+  { icon: Theater, title: "기획·초청 공연", text: "자체 기획공연부터 공모사업, 지역 축제와 기관 행사까지 공간과 관객에 어울리는 무대를 만듭니다." },
+  { icon: MapPinned, title: "찾아가는 문화예술공연", text: "학교, 도서관, 공공기관, 기업, 복지시설 등 관객이 있는 곳으로 찾아가는 맞춤형 공연입니다." },
+  { icon: BookOpen, title: "문화예술교육 프로그램", text: "공연의 감동을 직접 경험하고 표현할 수 있도록 체험과 참여 중심의 예술교육을 운영합니다." },
+  { icon: HeartHandshake, title: "문화복지 프로그램", text: "문화예술을 접하기 어려운 이웃의 일상에 따뜻한 무대를 전하는 예술 나눔 활동입니다." },
+  { icon: Disc3, title: "창작·앨범 제작 활동", text: "아리모리만의 색을 담은 음원과 앨범을 제작하고, 장르의 경계를 넘나드는 창작 활동을 이어갑니다." },
 ];
 
 export default function AboutPage() {
