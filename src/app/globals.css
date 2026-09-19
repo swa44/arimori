@@ -73,11 +73,7 @@ main {
 }
 
 .page-header {
-  padding: 24px 22px 24px;
-}
-
-.page-header > div:last-child {
-  padding-top: 44px;
+  padding: 18px 22px 24px;
 }
 
 .page-header h1,
