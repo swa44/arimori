@@ -20,9 +20,12 @@ function formatKoreanDate(value: string) {
 }
 
 export function CalendarView({ schedules }: { schedules: Schedule[] }) {
-  const initial = new Date(2026, 8, 1);
+  const firstScheduleDate = schedules[0]?.date;
+  const initial = firstScheduleDate
+    ? new Date(`${firstScheduleDate}T00:00:00`)
+    : new Date();
   const [currentMonth, setCurrentMonth] = useState(initial);
-  const [selectedDate, setSelectedDate] = useState("2026-09-20");
+  const [selectedDate, setSelectedDate] = useState(firstScheduleDate ?? dateKey(initial));
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
 
   useEffect(() => {
@@ -98,7 +101,11 @@ export function CalendarView({ schedules }: { schedules: Schedule[] }) {
           <section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="schedule-title">
             <div className="detail-sheet__handle" />
             <button className="icon-button detail-sheet__close" onClick={() => setSelectedSchedule(null)} aria-label="상세 닫기"><X size={19} /></button>
-            <div className="detail-sheet__visual" aria-label="공연 포스터 이미지 자리" />
+            <div
+              className={`detail-sheet__visual ${selectedSchedule.posterUrl ? "has-image" : ""}`}
+              aria-label={selectedSchedule.posterUrl ? `${selectedSchedule.title} 포스터` : "공연 포스터 이미지 자리"}
+              style={selectedSchedule.posterUrl ? { backgroundImage: `url(${selectedSchedule.posterUrl})` } : undefined}
+            />
             <div className="detail-sheet__content">
               <span className="tag tag--teal">{selectedSchedule.category}</span>
               <h2 id="schedule-title">{selectedSchedule.title}</h2>
@@ -106,8 +113,12 @@ export function CalendarView({ schedules }: { schedules: Schedule[] }) {
               <p className="detail-row"><MapPin size={17} /><span>{selectedSchedule.location}<br />{selectedSchedule.address}</span></p>
               <p className="detail-description">{selectedSchedule.description}</p>
               <div className="detail-actions">
-                <button className="secondary-button"><Navigation size={16} /> 길찾기</button>
-                <button className="primary-button"><Ticket size={16} /> 공연 안내</button>
+                {selectedSchedule.mapUrl ? (
+                  <a className="secondary-button" href={selectedSchedule.mapUrl} target="_blank" rel="noreferrer"><Navigation size={16} /> 길찾기</a>
+                ) : <span className="secondary-button is-disabled"><Navigation size={16} /> 길찾기</span>}
+                {selectedSchedule.bookingUrl ? (
+                  <a className="primary-button" href={selectedSchedule.bookingUrl} target="_blank" rel="noreferrer"><Ticket size={16} /> 공연 안내</a>
+                ) : <span className="primary-button is-disabled"><Ticket size={16} /> 공연 안내</span>}
               </div>
             </div>
           </section>

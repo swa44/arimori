@@ -8,6 +8,12 @@ export type Schedule = {
   description: string;
   category: string;
   tone: "olive" | "teal" | "brown";
+  posterPath?: string | null;
+  posterUrl?: string | null;
+  mapUrl?: string | null;
+  bookingUrl?: string | null;
+  isCancelled?: boolean;
+  isFeatured?: boolean;
 };
 
 export const schedules: Schedule[] = [

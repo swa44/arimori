@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { ArrowRight, ChevronRight } from "lucide-react";
-import { newsItems, schedules } from "@/data/content";
+import { newsItems } from "@/data/content";
+import { getPublicSchedules } from "@/lib/supabase/schedules";
 
-export default function HomePage() {
-  const featured = schedules[0];
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const schedules = await getPublicSchedules();
+  const featured = schedules.find((item) => item.isFeatured && !item.isCancelled)
+    ?? schedules.find((item) => !item.isCancelled)
+    ?? schedules[0];
 
   return (
     <>
@@ -22,11 +28,14 @@ export default function HomePage() {
         </div>
 
         <article className="hero__event-card">
-          <div className="date-block"><span>SEP</span><strong>20</strong></div>
+          <div className="date-block">
+            <span>{featured ? new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(`${featured.date}T00:00:00`)).toUpperCase() : "SOON"}</span>
+            <strong>{featured ? featured.date.slice(-2) : "–"}</strong>
+          </div>
           <div>
             <span className="tag">다가오는 공연</span>
-            <h2>{featured.title}</h2>
-            <p>{featured.time} · {featured.location}</p>
+            <h2>{featured?.title ?? "새로운 공연을 준비하고 있어요"}</h2>
+            <p>{featured ? `${featured.time} · ${featured.location}` : "공연 소식을 곧 전해드릴게요"}</p>
           </div>
           <Link href="/schedule" className="circle-button" aria-label="공연 일정 보기">
             <ArrowRight size={17} />
