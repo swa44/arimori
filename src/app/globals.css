@@ -765,8 +765,6 @@ main {
   .page-header { padding-left: 30px; padding-right: 30px; }
   .hero { padding-left: 30px; padding-right: 30px; }
   .home-section { padding-left: 30px; padding-right: 30px; }
-  .performance-grid { grid-template-columns: 1fr 1fr; }
-  .performance-card:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 560px) {
