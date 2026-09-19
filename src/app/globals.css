@@ -715,6 +715,7 @@ main {
 }
 
 .primary-button { background: var(--brand-teal); color: white; }
+.primary-button:disabled { cursor: wait; opacity: .62; }
 .secondary-button { background: var(--paper); color: var(--ink); }
 .primary-button.is-disabled,
 .secondary-button.is-disabled { cursor: default; opacity: .45; }
@@ -762,6 +763,7 @@ main {
 .admin-actions a { align-items: center; background: transparent; border: 0; border-radius: 9px; color: var(--muted); cursor: pointer; display: flex; padding: 8px; }
 .admin-actions button:hover,
 .admin-actions a:hover { background: var(--paper); color: var(--ink); }
+.admin-actions button:disabled { cursor: wait; opacity: .5; }
 .admin-empty { color: var(--muted); font-size: .84rem; padding: 42px 20px; text-align: center; }
 .admin-container--form { max-width: 760px; }
 
@@ -777,6 +779,12 @@ main {
 .check-row input { accent-color: var(--brand-teal); height: 16px; width: 16px; }
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
 .form-error { background: rgba(178,70,52,.09); border-radius: 10px; color: #9d3f31; font-size: .75rem; margin: 0 0 13px; padding: 10px 12px; }
+.admin-form-error { margin: 14px 0 0; }
+.spin { animation: spin .75s linear infinite; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .login-page { align-items: center; background: linear-gradient(145deg, #efeadf, #dfe2ce); display: flex; justify-content: center; min-height: 100vh; padding: 22px; }
 .login-card { background: rgba(255,253,248,.95); border: 1px solid rgba(255,255,255,.6); border-radius: 30px; box-shadow: var(--shadow); max-width: 390px; padding: 34px 26px; width: 100%; }

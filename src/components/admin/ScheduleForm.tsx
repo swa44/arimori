@@ -1,5 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useActionState, useEffect, useRef } from "react";
+import { LoaderCircle } from "lucide-react";
+import type { AdminActionState } from "@/app/admin/actions";
 import type { ScheduleRow } from "@/lib/supabase/schedules";
+
+const initialState: AdminActionState = { error: null };
 
 function toKoreaLocalInput(value: string | null) {
   if (!value) return "";
@@ -11,11 +18,28 @@ export function ScheduleForm({
   action,
   schedule,
 }: {
-  action: (formData: FormData) => Promise<void>;
+  action: (state: AdminActionState, formData: FormData) => Promise<AdminActionState>;
   schedule?: ScheduleRow;
 }) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
+  const submittedRef = useRef(false);
+
+  useEffect(() => {
+    if (state.error) submittedRef.current = false;
+  }, [state]);
+
   return (
-    <form action={action} className="schedule-form">
+    <form
+      action={formAction}
+      className="schedule-form"
+      onSubmit={(event) => {
+        if (submittedRef.current) {
+          event.preventDefault();
+          return;
+        }
+        submittedRef.current = true;
+      }}
+    >
       {schedule && <input type="hidden" name="id" value={schedule.id} />}
       {schedule && <input type="hidden" name="old_poster_path" value={schedule.poster_path ?? ""} />}
 
@@ -81,8 +105,12 @@ export function ScheduleForm({
 
       <div className="form-actions">
         <Link href="/admin" className="secondary-button">취소</Link>
-        <button className="primary-button" type="submit">{schedule ? "변경사항 저장" : "일정 등록"}</button>
+        <button className="primary-button" type="submit" disabled={isPending}>
+          {isPending && <LoaderCircle className="spin" size={16} />}
+          {isPending ? (schedule ? "저장 중..." : "등록 중...") : (schedule ? "변경사항 저장" : "일정 등록")}
+        </button>
       </div>
+      {state.error && <p className="form-error admin-form-error" role="alert">{state.error}</p>}
     </form>
   );
 }
