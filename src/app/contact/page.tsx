@@ -1,10 +1,9 @@
-import { Camera, ChevronRight, Info, Mail, Phone } from "lucide-react";
+import { ChevronRight, Info, Mail, Phone } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 const channels = [
-  { icon: Phone, label: "전화 문의", value: "연락처 준비 중" },
-  { icon: Mail, label: "이메일", value: "이메일 주소 준비 중" },
-  { icon: Camera, label: "인스타그램", value: "공식 채널 준비 중" },
+  { icon: Phone, label: "전화 문의", value: "010-2582-9969", href: "tel:+821025829969" },
+  { icon: Mail, label: "이메일", value: "arimori-ensemble@naver.com", href: "mailto:arimori-ensemble@naver.com" },
 ];
 
 export const metadata = { title: "공연 문의" };
@@ -20,12 +19,12 @@ export default function ContactPage() {
         </section>
 
         <div className="contact-list">
-          {channels.map(({ icon: Icon, label, value }) => (
-            <div className="contact-link" key={label}>
+          {channels.map(({ icon: Icon, label, value, href }) => (
+            <a className="contact-link" href={href} key={label}>
               <span className="contact-link__icon"><Icon size={21} /></span>
               <span><strong>{label}</strong><span>{value}</span></span>
               <ChevronRight size={18} color="#99938a" />
-            </div>
+            </a>
           ))}
         </div>
 
