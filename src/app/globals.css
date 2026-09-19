@@ -244,6 +244,49 @@ main {
 .tone-teal.is-active { color: var(--brand-teal); }
 .tone-sage.is-active { color: var(--brand-sage); }
 
+/* PWA */
+.install-prompt {
+  align-items: center;
+  backdrop-filter: blur(18px);
+  background: rgba(255,253,248,.96);
+  border: 1px solid rgba(112,83,61,.12);
+  border-radius: 20px;
+  bottom: calc(var(--nav-height) + 20px + env(safe-area-inset-bottom));
+  box-shadow: 0 16px 44px rgba(54,46,34,.2);
+  display: grid;
+  gap: 11px;
+  grid-template-columns: 38px 1fr auto auto;
+  left: 50%;
+  max-width: 550px;
+  padding: 13px 12px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  z-index: 1200;
+}
+
+.install-prompt__icon {
+  align-items: center;
+  background: rgba(136,144,80,.14);
+  border-radius: 12px;
+  color: var(--brand-olive);
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.install-prompt strong { display: block; font-size: .8rem; }
+.install-prompt p { color: var(--muted); font-size: .67rem; line-height: 1.45; margin: 3px 0 0; }
+.install-prompt__action { background: var(--brand-olive); border: 0; border-radius: 11px; color: white; cursor: pointer; font-size: .72rem; font-weight: 800; min-height: 36px; padding: 0 13px; }
+.install-prompt__close { align-items: center; background: transparent; border: 0; color: var(--muted); cursor: pointer; display: flex; justify-content: center; padding: 5px; }
+
+.offline-page { align-items: center; display: flex; justify-content: center; min-height: 100vh; padding: 24px; }
+.offline-card { max-width: 390px; text-align: center; }
+.offline-icon { align-items: center; background: rgba(88,141,148,.12); border-radius: 22px; color: var(--brand-teal); display: flex; height: 70px; justify-content: center; margin: 0 auto 25px; width: 70px; }
+.offline-card h1 { font-size: 2rem; line-height: 1.35; margin: 8px 0 14px; }
+.offline-card > p:not(.eyebrow) { color: var(--muted); font-size: .84rem; line-height: 1.7; margin: 0 auto 24px; max-width: 320px; }
+
 /* Home */
 .hero {
   min-height: 580px;
@@ -776,6 +819,9 @@ main {
   .schedule-form { padding: 19px 16px; }
   .form-grid { grid-template-columns: 1fr; gap: 0; }
   .form-actions > * { flex: 1; }
+  .install-prompt { grid-template-columns: 38px 1fr auto; }
+  .install-prompt__action { grid-column: 2; justify-self: start; }
+  .install-prompt__close { grid-column: 3; grid-row: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
