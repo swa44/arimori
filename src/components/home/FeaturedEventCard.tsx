@@ -15,6 +15,7 @@ function formatCardDate(value: string) {
 export function FeaturedEventCard({ schedule, today }: { schedule: Schedule | null; today: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const posterUrl = schedule?.posterUrls?.[0] ?? schedule?.posterUrl;
+  const eventLabel = schedule?.date === today ? "오늘의 공연" : "다가오는 공연";
 
   return <>
     <article
@@ -30,10 +31,10 @@ export function FeaturedEventCard({ schedule, today }: { schedule: Schedule | nu
       }}
     >
       <div className={`hero__poster-thumb${posterUrl ? " has-image" : ""}`}>
-        {posterUrl ? <img src={posterUrl} alt={`${schedule?.title ?? "다가오는 공연"} 포스터`} /> : <ImageIcon size={22} aria-hidden="true" />}
+        {posterUrl ? <img src={posterUrl} alt={`${schedule?.title ?? eventLabel} 포스터`} /> : <ImageIcon size={22} aria-hidden="true" />}
       </div>
       <div>
-        <span className="tag">다가오는 공연</span>
+        <span className="tag">{eventLabel}</span>
         <h2>{schedule?.title ?? "새로운 공연을 준비하고 있어요"}</h2>
         <p>{schedule ? <>{formatCardDate(schedule.date)} {schedule.time}<br /><span>{schedule.location}</span></> : "공연 소식을 곧 전해드릴게요"}</p>
       </div>

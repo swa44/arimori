@@ -108,19 +108,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     aboutImagePath = data?.about_image_path ?? null;
   }
   const totalPages = Math.max(1, Math.ceil((activeTab === "inquiries" ? inquiryCount : scheduleCount) / pageSize));
+  const activeGroup = activeTab === "events" ? "events" : activeTab === "inquiries" || activeTab === "home" ? "etc" : "manage";
 
   return <div className="admin-shell">
     <header className="admin-topbar"><Link href="/" className="admin-brand">아리모리 <span>관리자</span></Link><LogoutButton /></header>
     <div className="admin-container">
       <nav className="admin-tabs" aria-label="관리 메뉴">
-        <Link href="/admin?tab=schedules" className={activeTab === "schedules" ? "is-active" : ""}>일정 관리</Link>
-        <Link href="/admin?tab=videos" className={activeTab === "videos" ? "is-active" : ""}>영상 관리</Link>
-        <Link href="/admin?tab=news" className={activeTab === "news" ? "is-active" : ""}>소식 관리</Link>
-        <Link href="/admin?tab=events" className={activeTab === "events" ? "is-active" : ""}>이벤트</Link>
+        <Link href="/admin?tab=schedules" className={activeGroup === "manage" ? "is-active" : ""}>관리</Link>
+        <Link href="/admin?tab=events" className={activeGroup === "events" ? "is-active" : ""}>이벤트</Link>
+        <Link href="/admin?tab=inquiries" className={activeGroup === "etc" ? "is-active" : ""}>기타</Link>
+      </nav>
+
+      {activeGroup === "manage" && <nav className="admin-subtabs" aria-label="관리 세부 메뉴">
+        <Link href="/admin?tab=schedules" className={activeTab === "schedules" ? "is-active" : ""}>일정</Link>
+        <Link href="/admin?tab=videos" className={activeTab === "videos" ? "is-active" : ""}>영상</Link>
+        <Link href="/admin?tab=news" className={activeTab === "news" ? "is-active" : ""}>소식</Link>
+        <Link href="/admin?tab=about" className={activeTab === "about" ? "is-active" : ""}>소개</Link>
+      </nav>}
+      {activeGroup === "events" && <nav className="admin-subtabs" aria-label="이벤트 세부 메뉴"><Link href="/admin?tab=events" className="is-active">스탬프·공연 후기</Link></nav>}
+      {activeGroup === "etc" && <nav className="admin-subtabs" aria-label="기타 세부 메뉴">
         <Link href="/admin?tab=inquiries" className={activeTab === "inquiries" ? "is-active" : ""}>공연문의</Link>
         <Link href="/admin?tab=home" className={activeTab === "home" ? "is-active" : ""}>홈 화면</Link>
-        <Link href="/admin?tab=about" className={activeTab === "about" ? "is-active" : ""}>소개 관리</Link>
-      </nav>
+      </nav>}
 
       {activeTab === "schedules" && <>
         <div className="admin-heading"><div><h1>공연 일정</h1><p>{scheduleView === "upcoming" ? "예정 공연" : "지난 공연"} 총 {scheduleCount}개</p></div><Link href="/admin/schedule/new" className="primary-button"><Plus size={16} /> 새 일정</Link></div>
