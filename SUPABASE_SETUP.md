@@ -789,3 +789,143 @@ using (
 - 관리자 로그인 상태: 비공개 일정을 포함해 전체 조회 가능
 - 일반 로그인 사용자: 일정 등록·수정·삭제 및 포스터 업로드 불가
 - 관리자: 일정 CRUD와 포스터 업로드·수정·삭제 가능
+
+## 6. 이벤트(모바일 스탬프·공연 후기) 테이블
+
+아래 SQL은 Supabase의 **SQL Editor**에서 한 번에 실행한다. 참가자의 연락처는 공개 테이블 조회로 노출되지 않으며, 홈페이지의 참여 요청은 서버에서만 처리한다.
+
+```sql
+create table if not exists public."ARIMORI_stamp_programs" (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
+  description text,
+  starts_on date not null,
+  ends_on date not null,
+  required_stamps integer not null default 1 check (required_stamps between 1 and 100),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (ends_on >= starts_on)
+);
+
+create table if not exists public."ARIMORI_stamp_booths" (
+  id uuid primary key default gen_random_uuid(),
+  program_id uuid not null references public."ARIMORI_stamp_programs"(id) on delete cascade,
+  name text not null,
+  description text,
+  display_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public."ARIMORI_stamp_participants" (
+  id uuid primary key default gen_random_uuid(),
+  program_id uuid not null references public."ARIMORI_stamp_programs"(id) on delete cascade,
+  public_token uuid not null unique default gen_random_uuid(),
+  display_name text not null check (char_length(display_name) between 1 and 30),
+  phone text not null,
+  privacy_agreed boolean not null check (privacy_agreed),
+  completed_at timestamptz,
+  reward_redeemed_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (program_id, phone)
+);
+
+create table if not exists public."ARIMORI_stamp_records" (
+  id uuid primary key default gen_random_uuid(),
+  participant_id uuid not null references public."ARIMORI_stamp_participants"(id) on delete cascade,
+  booth_id uuid not null references public."ARIMORI_stamp_booths"(id) on delete cascade,
+  stamped_by uuid references auth.users(id) on delete set null,
+  stamped_at timestamptz not null default now(),
+  unique (participant_id, booth_id)
+);
+
+create table if not exists public."ARIMORI_review_campaigns" (
+  id uuid primary key default gen_random_uuid(),
+  schedule_id uuid not null references public."ARIMORI_schedules"(id) on delete cascade,
+  title text not null,
+  access_token uuid not null unique default gen_random_uuid(),
+  opens_at timestamptz not null,
+  closes_at timestamptz not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (closes_at > opens_at)
+);
+
+create table if not exists public."ARIMORI_event_reviews" (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public."ARIMORI_review_campaigns"(id) on delete cascade,
+  schedule_id uuid not null references public."ARIMORI_schedules"(id) on delete cascade,
+  display_name text not null check (char_length(display_name) between 1 and 30),
+  phone text not null,
+  content text not null check (char_length(content) between 1 and 500),
+  privacy_agreed boolean not null check (privacy_agreed),
+  public_agreed boolean not null default false,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  is_winner boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (campaign_id, phone)
+);
+
+create index if not exists "ARIMORI_stamp_booths_program_idx" on public."ARIMORI_stamp_booths" (program_id, display_order);
+create index if not exists "ARIMORI_stamp_participants_program_idx" on public."ARIMORI_stamp_participants" (program_id, created_at desc);
+create index if not exists "ARIMORI_stamp_records_participant_idx" on public."ARIMORI_stamp_records" (participant_id);
+create index if not exists "ARIMORI_review_campaigns_schedule_idx" on public."ARIMORI_review_campaigns" (schedule_id);
+create index if not exists "ARIMORI_event_reviews_campaign_idx" on public."ARIMORI_event_reviews" (campaign_id, created_at desc);
+create index if not exists "ARIMORI_event_reviews_public_idx" on public."ARIMORI_event_reviews" (schedule_id, created_at desc) where status = 'approved' and public_agreed = true;
+
+drop trigger if exists "ARIMORI_stamp_programs_updated_at" on public."ARIMORI_stamp_programs";
+create trigger "ARIMORI_stamp_programs_updated_at" before update on public."ARIMORI_stamp_programs"
+for each row execute function public."ARIMORI_set_updated_at"();
+drop trigger if exists "ARIMORI_review_campaigns_updated_at" on public."ARIMORI_review_campaigns";
+create trigger "ARIMORI_review_campaigns_updated_at" before update on public."ARIMORI_review_campaigns"
+for each row execute function public."ARIMORI_set_updated_at"();
+drop trigger if exists "ARIMORI_event_reviews_updated_at" on public."ARIMORI_event_reviews";
+create trigger "ARIMORI_event_reviews_updated_at" before update on public."ARIMORI_event_reviews"
+for each row execute function public."ARIMORI_set_updated_at"();
+
+alter table public."ARIMORI_stamp_programs" enable row level security;
+alter table public."ARIMORI_stamp_booths" enable row level security;
+alter table public."ARIMORI_stamp_participants" enable row level security;
+alter table public."ARIMORI_stamp_records" enable row level security;
+alter table public."ARIMORI_review_campaigns" enable row level security;
+alter table public."ARIMORI_event_reviews" enable row level security;
+
+revoke all on public."ARIMORI_stamp_programs" from anon, authenticated;
+revoke all on public."ARIMORI_stamp_booths" from anon, authenticated;
+revoke all on public."ARIMORI_stamp_participants" from anon, authenticated;
+revoke all on public."ARIMORI_stamp_records" from anon, authenticated;
+revoke all on public."ARIMORI_review_campaigns" from anon, authenticated;
+revoke all on public."ARIMORI_event_reviews" from anon, authenticated;
+
+grant select, insert, update, delete on public."ARIMORI_stamp_programs" to authenticated;
+grant select, insert, update, delete on public."ARIMORI_stamp_booths" to authenticated;
+grant select, insert, update, delete on public."ARIMORI_stamp_participants" to authenticated;
+grant select, insert, update, delete on public."ARIMORI_stamp_records" to authenticated;
+grant select, insert, update, delete on public."ARIMORI_review_campaigns" to authenticated;
+grant select, insert, update, delete on public."ARIMORI_event_reviews" to authenticated;
+
+drop policy if exists "ARIMORI_admin_all_stamp_programs" on public."ARIMORI_stamp_programs";
+drop policy if exists "ARIMORI_admin_all_stamp_booths" on public."ARIMORI_stamp_booths";
+drop policy if exists "ARIMORI_admin_all_stamp_participants" on public."ARIMORI_stamp_participants";
+drop policy if exists "ARIMORI_admin_all_stamp_records" on public."ARIMORI_stamp_records";
+drop policy if exists "ARIMORI_admin_all_review_campaigns" on public."ARIMORI_review_campaigns";
+drop policy if exists "ARIMORI_admin_all_event_reviews" on public."ARIMORI_event_reviews";
+
+create policy "ARIMORI_admin_all_stamp_programs" on public."ARIMORI_stamp_programs" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+create policy "ARIMORI_admin_all_stamp_booths" on public."ARIMORI_stamp_booths" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+create policy "ARIMORI_admin_all_stamp_participants" on public."ARIMORI_stamp_participants" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+create policy "ARIMORI_admin_all_stamp_records" on public."ARIMORI_stamp_records" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+create policy "ARIMORI_admin_all_review_campaigns" on public."ARIMORI_review_campaigns" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+create policy "ARIMORI_admin_all_event_reviews" on public."ARIMORI_event_reviews" for all to authenticated using ((select public."ARIMORI_is_admin"())) with check ((select public."ARIMORI_is_admin"()));
+```
+
+Vercel과 로컬 `.env.local`에는 서버 전용 환경변수 `ARIMORI_SUPABASE_SECRET_KEY`가 필요하다. 이 값에는 `NEXT_PUBLIC_` 접두사를 붙이지 않는다. 참여 QR의 주소를 정확히 만들기 위해 아래 값도 사용한다.
+
+```env
+ARIMORI_SITE_URL=https://arimori.vercel.app
+```
+
+이벤트 SQL 실행 후 관리자 페이지의 **이벤트** 탭에서 프로그램을 생성한다. 스탬프는 `참여 시작 QR → 참가자 카드 발급 → 각 부스 스캔 화면에서 참가자 QR 스캔` 순서이며, 후기는 `후기 이벤트 생성 → 참여 QR 저장 → 후기 승인` 순서다.

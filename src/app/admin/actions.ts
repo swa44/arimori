@@ -89,7 +89,7 @@ function safeFileName(fileName: string) {
   return `${crypto.randomUUID()}.${extension}`;
 }
 
-async function requireAdmin() {
+export async function requireAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 

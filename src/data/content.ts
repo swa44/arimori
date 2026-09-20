@@ -20,6 +20,12 @@ export type Schedule = {
   bookingUrl?: string | null;
   isCancelled?: boolean;
   isFeatured?: boolean;
+  reviews?: Array<{
+    id: string;
+    display_name: string;
+    content: string;
+    created_at: string;
+  }>;
 };
 
 export const schedules: Schedule[] = [

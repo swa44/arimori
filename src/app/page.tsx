@@ -3,11 +3,14 @@ import { NewsSection } from "@/components/home/NewsSection";
 import { getPublicNews } from "@/lib/supabase/news";
 import { getPublicSchedules } from "@/lib/supabase/schedules";
 import { getHomeHeroSettings } from "@/lib/supabase/site-settings";
+import { getApprovedScheduleReviews } from "@/lib/supabase/events";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [schedules, hero, news] = await Promise.all([getPublicSchedules(), getHomeHeroSettings(), getPublicNews()]);
+  const [baseSchedules, hero, news] = await Promise.all([getPublicSchedules(), getHomeHeroSettings(), getPublicNews()]);
+  const reviews = await getApprovedScheduleReviews(baseSchedules.map((item) => item.id));
+  const schedules = baseSchedules.map((item) => ({ ...item, reviews: reviews.filter((review) => review.schedule_id === item.id) }));
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",

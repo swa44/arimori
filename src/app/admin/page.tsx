@@ -14,10 +14,11 @@ import type { ScheduleRow } from "@/lib/supabase/schedules";
 import type { VideoRow } from "@/lib/supabase/videos";
 import type { NewsRow } from "@/lib/supabase/news";
 import { defaultHomeHero, getSiteImageUrl } from "@/lib/supabase/site-settings";
+import type { ReviewCampaign, StampProgram } from "@/lib/supabase/events";
 
 export const metadata = { title: "관리자" };
 const pageSize = 20;
-type AdminTab = "schedules" | "videos" | "news" | "inquiries" | "home" | "about";
+type AdminTab = "schedules" | "videos" | "news" | "events" | "inquiries" | "home" | "about";
 type InquiryRow = { id: string; name: string; phone: string; email: string; message: string; status: "new" | "in_progress" | "completed"; sms_status: "pending" | "sent" | "failed" | "not_configured"; created_at: string };
 const inquiryStatusLabel = { new: "새 문의", in_progress: "처리 중", completed: "처리 완료" };
 
@@ -35,7 +36,7 @@ function dateTime(value: string) {
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string; page?: string; q?: string; year?: string }> }) {
   const params = await searchParams;
-  const activeTab: AdminTab = params.tab === "videos" || params.tab === "news" || params.tab === "inquiries" || params.tab === "home" || params.tab === "about" ? params.tab : "schedules";
+  const activeTab: AdminTab = params.tab === "videos" || params.tab === "news" || params.tab === "events" || params.tab === "inquiries" || params.tab === "home" || params.tab === "about" ? params.tab : "schedules";
   const scheduleView = params.view === "past" ? "past" : "upcoming";
   const requestedPage = Number.parseInt(params.page ?? "1", 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -56,6 +57,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   let notificationPhone = "";
   let aboutImagePath: string | null = null;
   let homeHero = defaultHomeHero;
+  let stampPrograms: StampProgram[] = [];
+  let reviewCampaigns: Array<ReviewCampaign & { ARIMORI_schedules: { title: string } | null }> = [];
 
   if (activeTab === "schedules") {
     let query = supabase.from("ARIMORI_schedules").select("*", { count: "exact" });
@@ -86,6 +89,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     inquiries = (data ?? []) as InquiryRow[];
     inquiryCount = count ?? 0;
     notificationPhone = settings?.notification_phone ?? "";
+  } else if (activeTab === "events") {
+    const [{ data: stamps }, { data: campaigns }] = await Promise.all([
+      supabase.from("ARIMORI_stamp_programs").select("*").order("created_at", { ascending: false }),
+      supabase.from("ARIMORI_review_campaigns").select("*, ARIMORI_schedules(title)").order("created_at", { ascending: false }),
+    ]);
+    stampPrograms = (stamps ?? []) as StampProgram[];
+    reviewCampaigns = (campaigns ?? []) as typeof reviewCampaigns;
   } else if (activeTab === "home") {
     const { data } = await supabase.from("ARIMORI_site_settings").select("home_hero_kicker, home_hero_title, home_hero_subtitle").eq("id", true).maybeSingle();
     homeHero = {
@@ -106,6 +116,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Link href="/admin?tab=schedules" className={activeTab === "schedules" ? "is-active" : ""}>일정 관리</Link>
         <Link href="/admin?tab=videos" className={activeTab === "videos" ? "is-active" : ""}>영상 관리</Link>
         <Link href="/admin?tab=news" className={activeTab === "news" ? "is-active" : ""}>소식 관리</Link>
+        <Link href="/admin?tab=events" className={activeTab === "events" ? "is-active" : ""}>이벤트</Link>
         <Link href="/admin?tab=inquiries" className={activeTab === "inquiries" ? "is-active" : ""}>공연문의</Link>
         <Link href="/admin?tab=home" className={activeTab === "home" ? "is-active" : ""}>홈 화면</Link>
         <Link href="/admin?tab=about" className={activeTab === "about" ? "is-active" : ""}>소개 관리</Link>
@@ -145,6 +156,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <section className="admin-card inquiry-admin-list">
           {inquiries.length === 0 && <div className="admin-empty">접수된 공연 문의가 없습니다.</div>}
           {inquiries.map((item) => <article className="admin-inquiry-row" key={item.id}><Link href={`/admin/inquiry/${item.id}`} className="admin-inquiry"><span className={`inquiry-status inquiry-status--${item.status}`}>{inquiryStatusLabel[item.status]}</span><div><h2>{item.name}</h2><p>{item.phone} · {dateTime(item.created_at)}</p><span>{item.message}</span></div><ChevronRight size={18} /></Link><DeleteInquiryButton id={item.id} name={item.name} /></article>)}
+        </section>
+      </>}
+
+      {activeTab === "events" && <>
+        <div className="admin-heading"><div><h1>참여 이벤트</h1><p>스탬프 체험과 공연 후기를 각각 관리합니다.</p></div></div>
+        <section className="admin-event-dashboard">
+          <div className="admin-section"><div className="admin-section__heading"><div><h2>체험부스 스탬프</h2><p>참여자 QR을 부스에서 스캔해 완료를 기록합니다.</p></div><Link href="/admin/event/stamp/new" className="primary-button"><Plus size={16} /> 새 스탬프</Link></div>
+            <div className="admin-card">{stampPrograms.length === 0 && <div className="admin-empty">등록된 스탬프 프로그램이 없습니다.</div>}{stampPrograms.map((item) => <Link className="admin-event admin-event-link" href={`/admin/event/stamp/${item.id}`} key={item.id}><div><h2>{item.title}</h2><p>{item.starts_on}~{item.ends_on} · {item.required_stamps}개 완료 · {item.is_active ? "공개" : "비공개"}</p></div><ChevronRight size={18} /></Link>)}</div>
+          </div>
+          <div className="admin-section"><div className="admin-section__heading"><div><h2>공연 후기·추첨</h2><p>QR로 후기를 받고 승인한 글만 공연 상세에 공개합니다.</p></div><Link href="/admin/event/review/new" className="primary-button"><Plus size={16} /> 새 후기</Link></div>
+            <div className="admin-card">{reviewCampaigns.length === 0 && <div className="admin-empty">등록된 후기 이벤트가 없습니다.</div>}{reviewCampaigns.map((item) => <Link className="admin-event admin-event-link" href={`/admin/event/review/${item.id}`} key={item.id}><div><h2>{item.title}</h2><p>{item.ARIMORI_schedules?.title ?? "연결 공연 없음"} · {item.is_active ? "접수 공개" : "접수 중지"}</p></div><ChevronRight size={18} /></Link>)}</div>
+          </div>
         </section>
       </>}
 

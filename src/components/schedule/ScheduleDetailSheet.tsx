@@ -74,6 +74,12 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
         <p className="detail-row"><Clock3 size={17} /><span>{formatKoreanDate(schedule.date)} · {schedule.time}</span></p>
         <p className="detail-row"><MapPin size={17} /><span>{schedule.location}</span></p>
         <p className="detail-description">{schedule.description}</p>
+        {Boolean(schedule.reviews?.length) && <section className="detail-reviews" aria-label="관객 후기">
+          <div className="detail-reviews__heading"><strong>관객 후기</strong><span>{schedule.reviews?.length}개</span></div>
+          <div className="detail-reviews__list">{schedule.reviews?.map((review) => <article key={review.id}>
+            <span>{review.display_name}</span><p>{review.content}</p>
+          </article>)}</div>
+        </section>}
         <div className={`detail-actions ${schedule.bookingType !== "reservation" ? "has-notice" : ""}`}>
           <button className="secondary-button" type="button" onClick={() => setShowMapChooser(true)}><Navigation size={16} /> 길찾기</button>
           {schedule.bookingType === "reservation" && schedule.bookingUrl ? <a className="primary-button" href={schedule.bookingUrl} target="_blank" rel="noreferrer"><Ticket size={16} /> 공연 예매</a>
