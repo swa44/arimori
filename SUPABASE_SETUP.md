@@ -869,6 +869,7 @@ create table if not exists public."ARIMORI_review_campaigns" (
   opens_at timestamptz not null,
   closes_at timestamptz not null,
   is_active boolean not null default true,
+  winners_announced boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (closes_at > opens_at)
@@ -889,6 +890,10 @@ create table if not exists public."ARIMORI_event_reviews" (
   updated_at timestamptz not null default now(),
   unique (campaign_id, phone)
 );
+
+-- 위 공연 후기 테이블을 이미 생성한 프로젝트용 당첨자 발표 컬럼
+alter table public."ARIMORI_review_campaigns"
+  add column if not exists winners_announced boolean not null default false;
 
 create index if not exists "ARIMORI_stamp_booths_program_idx" on public."ARIMORI_stamp_booths" (program_id, display_order);
 create index if not exists "ARIMORI_stamp_participants_program_idx" on public."ARIMORI_stamp_participants" (program_id, created_at desc);

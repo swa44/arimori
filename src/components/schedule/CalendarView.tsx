@@ -45,8 +45,12 @@ export function CalendarView({ schedules, today }: { schedules: Schedule[]; toda
       </div></div>
       <div className="schedule-list__items" aria-live="polite">
         {monthItems.length ? monthItems.map((item) => <button className={`schedule-item ${item.date < today ? "is-past" : ""} ${item.date === today ? "is-today" : ""}`} key={item.id} onClick={() => setSelectedSchedule(item)}>
+          {item.posterUrl && <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="schedule-item__poster" src={item.posterUrl} alt="" aria-hidden="true" loading="lazy" />
+          </>}
+          <span className={`schedule-item__status schedule-item__status--top ${item.date < today ? "is-ended" : item.date === today ? "is-live" : "is-upcoming"}`}>{item.date < today ? "공연 종료" : item.date === today ? "당일 공연" : "공연 예정"}</span>
           <div className="schedule-item__content">
-            <span className={`schedule-item__status schedule-item__status--top ${item.date < today ? "is-ended" : item.date === today ? "is-live" : "is-upcoming"}`}>{item.date < today ? "공연 종료" : item.date === today ? "당일 공연" : "공연 예정"}</span>
             <h3>{item.title}</h3>
             <p>{formatScheduleCardDate(item.date)} {item.time} · {item.location}</p>
           </div>

@@ -26,6 +26,8 @@ export type Schedule = {
     content: string;
     created_at: string;
   }>;
+  reviewWinners?: Array<{ phone_suffix: string }>;
+  stampWinners?: Array<{ phone_suffix: string }>;
   stampProgram?: {
     slug: string;
     title: string;

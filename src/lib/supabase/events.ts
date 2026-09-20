@@ -45,6 +45,7 @@ export type ReviewCampaign = {
   opens_at: string;
   closes_at: string;
   is_active: boolean;
+  winners_announced: boolean;
   created_at: string;
 };
 
@@ -101,6 +102,42 @@ export async function getApprovedScheduleReviews(scheduleIds: string[]) {
       content: review.content,
       created_at: review.created_at,
     })) as PublicScheduleReview[];
+  } catch {
+    return [];
+  }
+}
+
+export async function getAnnouncedReviewWinners(scheduleIds: string[]) {
+  if (!scheduleIds.length) return [] as Array<{ schedule_id: string; phone_suffix: string }>;
+  try {
+    const supabase = createServiceClient();
+    const { data: campaigns } = await supabase.from("ARIMORI_review_campaigns").select("id, schedule_id").in("schedule_id", scheduleIds).eq("winners_announced", true);
+    const campaignIds = (campaigns ?? []).map((campaign) => campaign.id);
+    if (!campaignIds.length) return [];
+    const { data: winners } = await supabase.from("ARIMORI_event_reviews").select("campaign_id, phone").in("campaign_id", campaignIds).eq("is_winner", true).order("created_at");
+    const scheduleByCampaign = new Map((campaigns ?? []).map((campaign) => [campaign.id, campaign.schedule_id]));
+    return (winners ?? []).flatMap((winner) => {
+      const scheduleId = scheduleByCampaign.get(winner.campaign_id);
+      return scheduleId ? [{ schedule_id: scheduleId, phone_suffix: String(winner.phone ?? "").replace(/\D/g, "").slice(-4) }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function getAnnouncedStampWinners(scheduleIds: string[]) {
+  if (!scheduleIds.length) return [] as Array<{ schedule_id: string; phone_suffix: string }>;
+  try {
+    const supabase = createServiceClient();
+    const { data: programs } = await supabase.from("ARIMORI_stamp_programs").select("id, schedule_id").in("schedule_id", scheduleIds).eq("winners_announced", true);
+    const programIds = (programs ?? []).map((program) => program.id);
+    if (!programIds.length) return [];
+    const { data: winners } = await supabase.from("ARIMORI_stamp_participants").select("program_id, phone").in("program_id", programIds).eq("is_winner", true).not("completed_at", "is", null).order("created_at");
+    const scheduleByProgram = new Map((programs ?? []).map((program) => [program.id, program.schedule_id]));
+    return (winners ?? []).flatMap((winner) => {
+      const scheduleId = scheduleByProgram.get(winner.program_id);
+      return scheduleId ? [{ schedule_id: scheduleId, phone_suffix: String(winner.phone ?? "").replace(/\D/g, "").slice(-4) }] : [];
+    });
   } catch {
     return [];
   }

@@ -76,6 +76,8 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
         <p className="detail-row"><MapPin size={17} /><span>{schedule.location}</span></p>
         <p className="detail-description">{schedule.description}</p>
         {Boolean(schedule.reviews?.length) && <button className="detail-review-open" type="button" onClick={() => setShowReviews(true)}><strong>관객 후기</strong><span>{schedule.reviews?.length}</span></button>}
+        {Boolean(schedule.reviewWinners?.length) && <section className="detail-review-winners"><span>당첨자 발표</span><strong>공연 후기 이벤트 당첨을 축하드립니다.</strong><div>{schedule.reviewWinners?.map((winner, index) => <em key={`${winner.phone_suffix}-${index}`}>{winner.phone_suffix}</em>)}</div></section>}
+        {Boolean(schedule.stampWinners?.length) && <section className="detail-review-winners is-stamp"><span>당첨자 발표</span><strong>스탬프 이벤트 당첨을 축하드립니다.</strong><div>{schedule.stampWinners?.map((winner, index) => <em key={`${winner.phone_suffix}-${index}`}>{winner.phone_suffix}</em>)}</div></section>}
         <div className={`detail-actions ${schedule.bookingType !== "reservation" ? "has-notice" : ""}`}>
           <button className="secondary-button" type="button" onClick={() => setShowMapChooser(true)}><Navigation size={16} /> 길찾기</button>
           {schedule.bookingType === "reservation" && schedule.bookingUrl ? <a className="primary-button" href={schedule.bookingUrl} target="_blank" rel="noreferrer"><Ticket size={16} /> 공연 예매</a>

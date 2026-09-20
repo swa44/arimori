@@ -149,7 +149,7 @@ export async function updateStampWinner(formData: FormData) {
   if (nextWinner) query = query.not("completed_at", "is", null);
   const { error } = await query;
   if (error) throw new Error(error.message);
-  revalidatePath(`/admin/event/stamp/${programId}`);
+  revalidatePath(`/admin/event/stamp/${programId}`); revalidatePath("/schedule"); revalidatePath("/");
 }
 
 export async function bulkUpdateStampWinners(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
@@ -163,7 +163,7 @@ export async function bulkUpdateStampWinners(_state: AdminActionState, formData:
   if (action === "winner") query = query.not("completed_at", "is", null);
   const { error } = await query;
   if (error) return fail(error);
-  revalidatePath(`/admin/event/stamp/${programId}`);
+  revalidatePath(`/admin/event/stamp/${programId}`); revalidatePath("/schedule"); revalidatePath("/");
   return { error: null, success: `${ids.length}명을 ${action === "winner" ? "당첨" : "당첨 해제"} 처리했습니다.` };
 }
 
@@ -180,6 +180,7 @@ export async function toggleStampWinnerAnnouncement(_state: AdminActionState, fo
   if (error) return fail(error);
   revalidatePath(`/admin/event/stamp/${programId}`);
   revalidatePath("/event/stamp/[slug]/card/[token]", "page");
+  revalidatePath("/schedule"); revalidatePath("/");
   return { error: null, success: announced ? "당첨자를 발표했습니다." : "당첨자 발표를 취소했습니다." };
 }
 
@@ -249,4 +250,19 @@ export async function bulkUpdateReviewState(_state: AdminActionState, formData: 
   revalidatePath(`/admin/event/review/${campaignId}`); revalidatePath("/schedule"); revalidatePath("/");
   const actionLabel = { approved: "공개 승인", rejected: "비공개", winner: "당첨 표시", unwinner: "당첨 해제", delete: "삭제" }[action];
   return { error: null, success: `${ids.length}개 후기를 ${actionLabel} 처리했습니다.` };
+}
+
+export async function toggleReviewWinnerAnnouncement(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const campaignId = text(formData, "campaign_id"); const announced = bool(formData, "next_announced");
+  const supabase = createServiceClient();
+  if (announced) {
+    const { count, error: countError } = await supabase.from("ARIMORI_event_reviews").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("is_winner", true);
+    if (countError) return fail(countError);
+    if (!count) return { error: "먼저 접수된 후기에서 당첨자를 선택해 주세요." };
+  }
+  const { error } = await supabase.from("ARIMORI_review_campaigns").update({ winners_announced: announced }).eq("id", campaignId);
+  if (error) return fail(error);
+  revalidatePath(`/admin/event/review/${campaignId}`); revalidatePath("/schedule"); revalidatePath("/");
+  return { error: null, success: announced ? "후기 당첨자를 발표했습니다." : "당첨자 발표를 취소했습니다." };
 }
