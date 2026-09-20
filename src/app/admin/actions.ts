@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 export type AdminActionState = {
   error: string | null;
   success?: string;
+  participant?: string;
 };
 
 function actionError(error: unknown): AdminActionState {

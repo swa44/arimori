@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Download, QrCode } from "lucide-react";
 
-export function QrCodeCard({ value, filename, fileName, label, title, description }: { value: string; filename?: string; fileName?: string; label?: string; title?: string; description?: string }) {
+export function QrCodeCard({ value, filename, fileName, label, title, description, showValue = true }: { value: string; filename?: string; fileName?: string; label?: string; title?: string; description?: string; showValue?: boolean }) {
   const heading = title ?? label ?? "QR 코드";
   const downloadName = fileName ?? `${filename ?? "arimori-qr"}.png`;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,7 +34,7 @@ export function QrCodeCard({ value, filename, fileName, label, title, descriptio
     <div className="qr-card__heading"><QrCode size={19} /><strong>{heading}</strong></div>
     {description && <span className="qr-card__description">{description}</span>}
     <canvas ref={canvasRef} aria-label={heading} />
-    <p>{value}</p>
+    {showValue && <p>{value}</p>}
     <button className="secondary-button" type="button" onClick={download}><Download size={16} /> QR 코드 저장</button>
     {error && <span className="form-error" role="alert">{error}</span>}
   </div>;

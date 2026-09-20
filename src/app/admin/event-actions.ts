@@ -109,7 +109,7 @@ export async function recordStamp(_state: AdminActionState, formData: FormData):
   if (!booth || !participant || booth.program_id !== participant.program_id) return { error: "이 프로그램의 참여자 QR이 아닙니다." };
   const { error } = await supabase.from("ARIMORI_stamp_records").insert({ participant_id: participant.id, booth_id: booth.id, stamped_by: user.id });
   const phoneSuffix = String(participant.phone).slice(-4);
-  if (error?.code === "23505") return { error: `연락처 뒷자리 ${phoneSuffix} 참가자는 이 부스 스탬프를 이미 받았습니다.` };
+  if (error?.code === "23505") return { error: "이미 스탬프 받으셨네요!", participant: `${phoneSuffix} 참가자` };
   if (error) return fail(error);
   const [{ count }, { data: program }] = await Promise.all([
     supabase.from("ARIMORI_stamp_records").select("id", { count: "exact", head: true }).eq("participant_id", participant.id),
@@ -118,7 +118,7 @@ export async function recordStamp(_state: AdminActionState, formData: FormData):
   if ((count ?? 0) >= (program?.required_stamps ?? Number.MAX_SAFE_INTEGER)) {
     await supabase.from("ARIMORI_stamp_participants").update({ completed_at: new Date().toISOString() }).eq("id", participant.id).is("completed_at", null);
   }
-  return { error: null, success: `${phoneSuffix} 참가자님 ${booth.name} 스탬프를 기록했습니다.` };
+  return { error: null, success: `${booth.name} 스탬프 기록완료!`, participant: `${phoneSuffix} 참가자` };
 }
 
 export async function redeemStampReward(formData: FormData) {
