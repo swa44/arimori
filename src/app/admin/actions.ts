@@ -427,3 +427,77 @@ export async function updateInquiryStatus(_state: AdminActionState, formData: Fo
   revalidatePath(`/admin/inquiry/${id}`);
   return { error: null };
 }
+
+export async function deleteInquiry(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { error: "삭제할 문의를 확인할 수 없습니다." };
+
+  const { error } = await supabase.from("ARIMORI_inquiries").delete().eq("id", id);
+  if (error) return { error: `공연문의 삭제 실패: ${error.message}` };
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/inquiry/${id}`);
+  return { error: null };
+}
+
+export async function updateHomeHero(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const kicker = String(formData.get("home_hero_kicker") ?? "").trim();
+  const title = String(formData.get("home_hero_title") ?? "").trim();
+  const subtitle = String(formData.get("home_hero_subtitle") ?? "").trim();
+
+  if (!kicker || !title || !subtitle) return { error: "세 문구를 모두 입력해 주세요." };
+  if (kicker.length > 60 || title.length > 40 || subtitle.length > 40) {
+    return { error: "영문은 60자, 한글 문구는 각각 40자 이내로 입력해 주세요." };
+  }
+
+  const { error } = await supabase.from("ARIMORI_site_settings").upsert({
+    id: true,
+    home_hero_kicker: kicker,
+    home_hero_title: title,
+    home_hero_subtitle: subtitle,
+  });
+  if (error) return { error: `홈 문구 저장 실패: ${error.message}` };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { error: null, success: "홈 화면 문구를 저장했습니다." };
+}
+
+export async function updateAboutImage(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase, user } = await requireAdmin();
+  const image = formData.get("about_image");
+  if (!(image instanceof File) || !image.size) return { error: "소개 사진을 선택해 주세요." };
+  if (!["image/jpeg", "image/png", "image/webp"].includes(image.type)) return { error: "JPG, PNG, WEBP 이미지 파일만 등록할 수 있습니다." };
+  if (image.size > 10 * 1024 * 1024) return { error: "소개 사진은 10MB 이하로 등록해 주세요." };
+
+  const path = `${user.id}/${safeFileName(image.name)}`;
+  const { data: current } = await supabase.from("ARIMORI_site_settings").select("about_image_path").eq("id", true).maybeSingle();
+  const oldPath = current?.about_image_path as string | null;
+  const { error: uploadError } = await supabase.storage.from("ARIMORI_site_images").upload(path, image, { contentType: image.type, upsert: false });
+  if (uploadError) return { error: `소개 사진 업로드 실패: ${uploadError.message}` };
+
+  const { error } = await supabase.from("ARIMORI_site_settings").upsert({ id: true, about_image_path: path });
+  if (error) {
+    await supabase.storage.from("ARIMORI_site_images").remove([path]);
+    return { error: `소개 사진 저장 실패: ${error.message}` };
+  }
+  if (oldPath && oldPath !== path) await supabase.storage.from("ARIMORI_site_images").remove([oldPath]);
+
+  revalidatePath("/about");
+  revalidatePath("/admin");
+  return { error: null, success: "소개 사진을 저장했습니다." };
+}
+
+export async function deleteAboutImage(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const path = nullableText(formData, "about_image_path");
+  const { error } = await supabase.from("ARIMORI_site_settings").upsert({ id: true, about_image_path: null });
+  if (error) return { error: `소개 사진 삭제 실패: ${error.message}` };
+  if (path) await supabase.storage.from("ARIMORI_site_images").remove([path]);
+
+  revalidatePath("/about");
+  revalidatePath("/admin");
+  return { error: null, success: "소개 사진을 삭제했습니다." };
+}

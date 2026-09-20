@@ -1,6 +1,6 @@
-const CACHE_NAME = "arimori-v1";
+const CACHE_NAME = "arimori-v2";
 const OFFLINE_URL = "/offline";
-const PRECACHE = [OFFLINE_URL, "/icons/arimori-192.png", "/icons/arimori-512.png"];
+const PRECACHE = [OFFLINE_URL, "/icons/arimori-maskable-v2-192.png", "/icons/arimori-maskable-v2-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE)));

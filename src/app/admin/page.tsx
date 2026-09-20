@@ -3,15 +3,19 @@ import Link from "next/link";
 import { ChevronRight, Pencil, Plus, Search } from "lucide-react";
 import { DeleteScheduleButton } from "@/components/admin/DeleteScheduleButton";
 import { DeleteVideoButton } from "@/components/admin/DeleteVideoButton";
+import { DeleteInquiryButton } from "@/components/admin/DeleteInquiryButton";
 import { InquirySettingsForm } from "@/components/admin/InquirySettingsForm";
+import { AboutImageForm } from "@/components/admin/AboutImageForm";
+import { HomeHeroForm } from "@/components/admin/HomeHeroForm";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { createClient } from "@/lib/supabase/server";
 import type { ScheduleRow } from "@/lib/supabase/schedules";
 import type { VideoRow } from "@/lib/supabase/videos";
+import { defaultHomeHero, getSiteImageUrl } from "@/lib/supabase/site-settings";
 
 export const metadata = { title: "관리자" };
 const pageSize = 20;
-type AdminTab = "schedules" | "videos" | "inquiries";
+type AdminTab = "schedules" | "videos" | "inquiries" | "home" | "about";
 type InquiryRow = { id: string; name: string; phone: string; email: string; message: string; status: "new" | "in_progress" | "completed"; sms_status: "pending" | "sent" | "failed" | "not_configured"; created_at: string };
 const inquiryStatusLabel = { new: "새 문의", in_progress: "처리 중", completed: "처리 완료" };
 
@@ -29,7 +33,7 @@ function dateTime(value: string) {
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string; page?: string; q?: string; year?: string }> }) {
   const params = await searchParams;
-  const activeTab: AdminTab = params.tab === "videos" || params.tab === "inquiries" ? params.tab : "schedules";
+  const activeTab: AdminTab = params.tab === "videos" || params.tab === "inquiries" || params.tab === "home" || params.tab === "about" ? params.tab : "schedules";
   const scheduleView = params.view === "past" ? "past" : "upcoming";
   const requestedPage = Number.parseInt(params.page ?? "1", 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -47,6 +51,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   let inquiries: InquiryRow[] = [];
   let inquiryCount = 0;
   let notificationPhone = "";
+  let aboutImagePath: string | null = null;
+  let homeHero = defaultHomeHero;
 
   if (activeTab === "schedules") {
     let query = supabase.from("ARIMORI_schedules").select("*", { count: "exact" });
@@ -65,7 +71,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   } else if (activeTab === "videos") {
     const { data } = await supabase.from("ARIMORI_videos").select("*").order("display_order", { ascending: true }).order("created_at", { ascending: false });
     videos = (data ?? []) as VideoRow[];
-  } else {
+  } else if (activeTab === "inquiries") {
     const from = (currentPage - 1) * pageSize;
     const [{ data, count }, { data: settings }] = await Promise.all([
       supabase.from("ARIMORI_inquiries").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, from + pageSize - 1),
@@ -74,6 +80,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     inquiries = (data ?? []) as InquiryRow[];
     inquiryCount = count ?? 0;
     notificationPhone = settings?.notification_phone ?? "";
+  } else if (activeTab === "home") {
+    const { data } = await supabase.from("ARIMORI_site_settings").select("home_hero_kicker, home_hero_title, home_hero_subtitle").eq("id", true).maybeSingle();
+    homeHero = {
+      kicker: data?.home_hero_kicker?.trim() || defaultHomeHero.kicker,
+      title: data?.home_hero_title?.trim() || defaultHomeHero.title,
+      subtitle: data?.home_hero_subtitle?.trim() || defaultHomeHero.subtitle,
+    };
+  } else {
+    const { data } = await supabase.from("ARIMORI_site_settings").select("about_image_path").eq("id", true).maybeSingle();
+    aboutImagePath = data?.about_image_path ?? null;
   }
   const totalPages = Math.max(1, Math.ceil((activeTab === "inquiries" ? inquiryCount : scheduleCount) / pageSize));
 
@@ -84,6 +100,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Link href="/admin?tab=schedules" className={activeTab === "schedules" ? "is-active" : ""}>일정 관리</Link>
         <Link href="/admin?tab=videos" className={activeTab === "videos" ? "is-active" : ""}>영상 관리</Link>
         <Link href="/admin?tab=inquiries" className={activeTab === "inquiries" ? "is-active" : ""}>공연문의</Link>
+        <Link href="/admin?tab=home" className={activeTab === "home" ? "is-active" : ""}>홈 화면</Link>
+        <Link href="/admin?tab=about" className={activeTab === "about" ? "is-active" : ""}>소개 관리</Link>
       </nav>
 
       {activeTab === "schedules" && <>
@@ -111,8 +129,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <InquirySettingsForm phone={notificationPhone} />
         <section className="admin-card inquiry-admin-list">
           {inquiries.length === 0 && <div className="admin-empty">접수된 공연 문의가 없습니다.</div>}
-          {inquiries.map((item) => <Link href={`/admin/inquiry/${item.id}`} className="admin-inquiry" key={item.id}><span className={`inquiry-status inquiry-status--${item.status}`}>{inquiryStatusLabel[item.status]}</span><div><h2>{item.name}</h2><p>{item.phone} · {dateTime(item.created_at)}</p><span>{item.message}</span></div><ChevronRight size={18} /></Link>)}
+          {inquiries.map((item) => <article className="admin-inquiry-row" key={item.id}><Link href={`/admin/inquiry/${item.id}`} className="admin-inquiry"><span className={`inquiry-status inquiry-status--${item.status}`}>{inquiryStatusLabel[item.status]}</span><div><h2>{item.name}</h2><p>{item.phone} · {dateTime(item.created_at)}</p><span>{item.message}</span></div><ChevronRight size={18} /></Link><DeleteInquiryButton id={item.id} name={item.name} /></article>)}
         </section>
+      </>}
+
+      {activeTab === "about" && <>
+        <div className="admin-heading"><div><h1>소개 관리</h1><p>소개 페이지 상단에 표시할 대표 사진을 관리합니다.</p></div></div>
+        <AboutImageForm imagePath={aboutImagePath} imageUrl={getSiteImageUrl(aboutImagePath)} />
+      </>}
+
+      {activeTab === "home" && <>
+        <div className="admin-heading"><div><h1>홈 화면 관리</h1><p>홈 상단의 세 문구를 관리합니다.</p></div></div>
+        <HomeHeroForm {...homeHero} />
       </>}
 
       {((activeTab === "schedules" && scheduleCount > pageSize) || (activeTab === "inquiries" && inquiryCount > pageSize)) && <nav className="admin-pagination" aria-label="페이지 이동">

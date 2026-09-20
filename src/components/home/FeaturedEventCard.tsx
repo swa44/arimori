@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Image as ImageIcon } from "lucide-react";
+import { ChevronRight, Image as ImageIcon } from "lucide-react";
 import type { Schedule } from "@/data/content";
 import { ScheduleDetailSheet } from "@/components/schedule/ScheduleDetailSheet";
 
@@ -17,7 +17,18 @@ export function FeaturedEventCard({ schedule, today }: { schedule: Schedule | nu
   const posterUrl = schedule?.posterUrls?.[0] ?? schedule?.posterUrl;
 
   return <>
-    <article className="hero__event-card">
+    <article
+      className={`hero__event-card${schedule ? " is-clickable" : ""}`}
+      role={schedule ? "button" : undefined}
+      tabIndex={schedule ? 0 : undefined}
+      onClick={() => { if (schedule) setIsOpen(true); }}
+      onKeyDown={(event) => {
+        if (schedule && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          setIsOpen(true);
+        }
+      }}
+    >
       <div className={`hero__poster-thumb${posterUrl ? " has-image" : ""}`}>
         {posterUrl ? <img src={posterUrl} alt={`${schedule?.title ?? "다가오는 공연"} 포스터`} /> : <ImageIcon size={22} aria-hidden="true" />}
       </div>
@@ -26,7 +37,7 @@ export function FeaturedEventCard({ schedule, today }: { schedule: Schedule | nu
         <h2>{schedule?.title ?? "새로운 공연을 준비하고 있어요"}</h2>
         <p>{schedule ? <>{formatCardDate(schedule.date)} {schedule.time}<br /><span>{schedule.location}</span></> : "공연 소식을 곧 전해드릴게요"}</p>
       </div>
-      <button className="circle-button" type="button" disabled={!schedule} onClick={() => setIsOpen(true)} aria-label={schedule ? `${schedule.title} 상세 보기` : "등록된 공연 없음"}><ArrowRight size={17} /></button>
+      <span className="circle-button" aria-hidden="true"><ChevronRight size={21} strokeWidth={1.9} /></span>
     </article>
     {schedule && isOpen && <ScheduleDetailSheet schedule={schedule} today={today} onClose={() => setIsOpen(false)} />}
   </>;

@@ -3,11 +3,12 @@ import { ChevronRight } from "lucide-react";
 import { FeaturedEventCard } from "@/components/home/FeaturedEventCard";
 import { newsItems } from "@/data/content";
 import { getPublicSchedules } from "@/lib/supabase/schedules";
+import { getHomeHeroSettings } from "@/lib/supabase/site-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const schedules = await getPublicSchedules();
+  const [schedules, hero] = await Promise.all([getPublicSchedules(), getHomeHeroSettings()]);
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -21,15 +22,15 @@ export default async function HomePage() {
     <>
       <section className="hero">
         <div className="hero__top">
-          <span className="hero__brand">아리모리</span>
+          <span className="hero__brand">아리모리앙상블</span>
           <span className="hero__ornament" aria-hidden="true"><i /><i /><i /></span>
         </div>
 
         <div className="hero__content">
-          <p className="hero__kicker">TRADITION, CLOSE TO YOU</p>
+          <p className="hero__kicker">{hero.kicker}</p>
           <h1 className="hero__title">
-            오래된 멋을
-            <span>오늘의 우리 곁으로</span>
+            {hero.title}
+            <span>{hero.subtitle}</span>
           </h1>
         </div>
 

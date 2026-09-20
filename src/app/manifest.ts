@@ -15,10 +15,8 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "ko-KR",
     categories: ["entertainment", "music", "lifestyle"],
     icons: [
-      { src: "/icons/arimori-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: "/icons/arimori-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-      { src: "/icons/arimori-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-      { src: "/icons/arimori-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icons/arimori-maskable-v2-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icons/arimori-maskable-v2-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
       { name: "공연 일정", short_name: "일정", url: "/schedule", icons: [{ src: "/icons/arimori-192.png", sizes: "192x192" }] },

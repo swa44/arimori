@@ -318,6 +318,110 @@ where poster_path is not null
   and coalesce(array_length(poster_paths, 1), 0) = 0;
 ```
 
+### 소개 페이지 대표 사진 설정
+
+관리자에서 소개 사진을 등록하기 전에 아래 SQL 블록 전체를 한 번 실행한다.
+
+```sql
+create table if not exists public."ARIMORI_site_settings" (
+  id boolean primary key default true check (id = true),
+  about_image_path text,
+  home_hero_kicker text not null default 'TRADITION, CLOSE TO YOU',
+  home_hero_title text not null default '오래된 멋을',
+  home_hero_subtitle text not null default '오늘의 우리 곁으로',
+  updated_at timestamptz not null default now()
+);
+
+alter table public."ARIMORI_site_settings"
+  add column if not exists home_hero_kicker text not null default 'TRADITION, CLOSE TO YOU',
+  add column if not exists home_hero_title text not null default '오래된 멋을',
+  add column if not exists home_hero_subtitle text not null default '오늘의 우리 곁으로';
+
+insert into public."ARIMORI_site_settings" (id, about_image_path)
+values (true, null)
+on conflict (id) do nothing;
+
+drop trigger if exists "ARIMORI_site_settings_updated_at" on public."ARIMORI_site_settings";
+create trigger "ARIMORI_site_settings_updated_at"
+before update on public."ARIMORI_site_settings"
+for each row execute function public."ARIMORI_set_updated_at"();
+
+alter table public."ARIMORI_site_settings" enable row level security;
+
+revoke all on table public."ARIMORI_site_settings" from anon, authenticated;
+grant select on table public."ARIMORI_site_settings" to anon, authenticated;
+grant insert, update on table public."ARIMORI_site_settings" to authenticated;
+
+drop policy if exists "ARIMORI_public_read_site_settings" on public."ARIMORI_site_settings";
+create policy "ARIMORI_public_read_site_settings"
+on public."ARIMORI_site_settings"
+for select to anon, authenticated
+using (true);
+
+drop policy if exists "ARIMORI_admin_insert_site_settings" on public."ARIMORI_site_settings";
+create policy "ARIMORI_admin_insert_site_settings"
+on public."ARIMORI_site_settings"
+for insert to authenticated
+with check ((select public."ARIMORI_is_admin"()) and id = true);
+
+drop policy if exists "ARIMORI_admin_update_site_settings" on public."ARIMORI_site_settings";
+create policy "ARIMORI_admin_update_site_settings"
+on public."ARIMORI_site_settings"
+for update to authenticated
+using ((select public."ARIMORI_is_admin"()))
+with check ((select public."ARIMORI_is_admin"()) and id = true);
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'ARIMORI_site_images',
+  'ARIMORI_site_images',
+  true,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "ARIMORI_public_read_site_images" on storage.objects;
+create policy "ARIMORI_public_read_site_images"
+on storage.objects
+for select to anon, authenticated
+using (bucket_id = 'ARIMORI_site_images');
+
+drop policy if exists "ARIMORI_admin_insert_site_images" on storage.objects;
+create policy "ARIMORI_admin_insert_site_images"
+on storage.objects
+for insert to authenticated
+with check (
+  bucket_id = 'ARIMORI_site_images'
+  and (select public."ARIMORI_is_admin"())
+);
+
+drop policy if exists "ARIMORI_admin_update_site_images" on storage.objects;
+create policy "ARIMORI_admin_update_site_images"
+on storage.objects
+for update to authenticated
+using (
+  bucket_id = 'ARIMORI_site_images'
+  and (select public."ARIMORI_is_admin"())
+)
+with check (
+  bucket_id = 'ARIMORI_site_images'
+  and (select public."ARIMORI_is_admin"())
+);
+
+drop policy if exists "ARIMORI_admin_delete_site_images" on storage.objects;
+create policy "ARIMORI_admin_delete_site_images"
+on storage.objects
+for delete to authenticated
+using (
+  bucket_id = 'ARIMORI_site_images'
+  and (select public."ARIMORI_is_admin"())
+);
+```
+
 ### 기존 일정 테이블에 길찾기 검색 문구 추가
 
 이미 `ARIMORI_schedules` 테이블을 만든 프로젝트에서는 아래 SQL을 한 번 실행한다. 기존 일정은 장소명을 초기 검색 문구로 사용한다.
