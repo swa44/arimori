@@ -1,16 +1,18 @@
 import { CalendarView } from "@/components/schedule/CalendarView";
 import { getPublicSchedules } from "@/lib/supabase/schedules";
-import { getApprovedScheduleReviews } from "@/lib/supabase/events";
+import { getApprovedScheduleReviews, getLinkedStampPrograms } from "@/lib/supabase/events";
 
 export const metadata = { title: "공연 일정" };
 export const dynamic = "force-dynamic";
 
 export default async function SchedulePage() {
   const baseSchedules = await getPublicSchedules();
-  const reviews = await getApprovedScheduleReviews(baseSchedules.map((item) => item.id));
+  const scheduleIds = baseSchedules.map((item) => item.id);
+  const [reviews, stampPrograms] = await Promise.all([getApprovedScheduleReviews(scheduleIds), getLinkedStampPrograms(scheduleIds)]);
   const schedules = baseSchedules.map((item) => ({
     ...item,
     reviews: reviews.filter((review) => review.schedule_id === item.id),
+    stampProgram: stampPrograms.find((program) => program.schedule_id === item.id) ?? null,
   }));
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",

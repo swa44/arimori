@@ -12,7 +12,7 @@ const notoSerifKr = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.ARIMORI_SITE_URL ?? "https://arimori.vercel.app"),
+  metadataBase: new URL(process.env.ARIMORI_SITE_URL ?? "https://ari-mori.com"),
   title: { default: "아리모리", template: "%s | 아리모리" },
   description: "전통을 오늘의 감각으로 잇는 지역 문화예술 공연팀 아리모리입니다.",
   openGraph: {

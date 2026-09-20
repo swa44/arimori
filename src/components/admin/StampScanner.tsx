@@ -4,9 +4,10 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { Camera, Keyboard } from "lucide-react";
 import { recordStamp } from "@/app/admin/event-actions";
+import { recordStaffStamp } from "@/app/event/actions";
 
-export function StampScanner({ boothId }: { boothId: string }) {
-  const [state, action, pending] = useActionState(recordStamp, { error: null });
+export function StampScanner({ boothId, staffMode = false }: { boothId: string; staffMode?: boolean }) {
+  const [state, action, pending] = useActionState(staffMode ? recordStaffStamp : recordStamp, { error: null });
   const [camera, setCamera] = useState(false);
   const [scannedValue, setScannedValue] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock3, MapPin, Navigation, Ticket, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3, MapPin, Navigation, Stamp, Ticket, X } from "lucide-react";
 import type { Schedule } from "@/data/content";
 
 function formatKoreanDate(value: string) {
@@ -87,6 +87,7 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
               : schedule.bookingType === "free" ? <p className="booking-notice">해당 공연은 별도 예매를 받지 않습니다.</p>
                 : <p className="booking-notice">공연 예매 링크를 준비하고 있습니다.</p>}
         </div>
+        {schedule.stampProgram && <a className="primary-button detail-stamp-link" href={`/event/stamp/${schedule.stampProgram.slug}`}><Stamp size={17} /> 스탬프 참여하기</a>}
       </div>
       <button className="secondary-button detail-sheet__bottom-close" type="button" onClick={onClose}>닫기</button>
       {isPosterLoading && <div className="detail-sheet__loading" role="status" aria-live="polite"><span className="detail-sheet__spinner" aria-hidden="true" /><span>공연 정보를 불러오는 중입니다.</span></div>}

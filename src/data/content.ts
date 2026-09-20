@@ -26,6 +26,10 @@ export type Schedule = {
     content: string;
     created_at: string;
   }>;
+  stampProgram?: {
+    slug: string;
+    title: string;
+  } | null;
 };
 
 export const schedules: Schedule[] = [

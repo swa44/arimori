@@ -11,7 +11,7 @@ NEXT_PUBLIC_ARIMORI_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ARIMORI_SUPABASE_SECRET_KEY=sb_secret_...
 ARIMORI_BIZGO_API_KEY=Bizgo_API_키
 ARIMORI_BIZGO_SENDER_NUMBER=Bizgo에_등록한_발신번호
-ARIMORI_SITE_URL=https://실제-배포-도메인
+ARIMORI_SITE_URL=https://ari-mori.com
 ```
 
 - Publishable Key는 Supabase Dashboard의 `Settings → API Keys`에서 확인한다.
@@ -697,7 +697,7 @@ create index if not exists "ARIMORI_inquiries_status_created_idx"
 
 1. Vercel 환경변수에 `ARIMORI_SUPABASE_SECRET_KEY`, `ARIMORI_BIZGO_API_KEY`, `ARIMORI_BIZGO_SENDER_NUMBER`, `ARIMORI_SITE_URL`을 추가한다.
 2. `ARIMORI_BIZGO_SENDER_NUMBER`는 Bizgo에 등록된 발신번호를 숫자만 입력한다.
-3. `ARIMORI_SITE_URL`은 `https://arimori.vercel.app`처럼 실제 접속 주소를 입력한다.
+3. `ARIMORI_SITE_URL`은 `https://ari-mori.com`을 입력한다.
 4. 재배포 후 `/admin?tab=inquiries`에서 알림을 받을 휴대전화 번호를 저장한다.
 
 문의 알림은 관리자 상세 링크 때문에 SMS 길이를 넘을 수 있어 첨부파일 없는 LMS 방식으로 발송한다. API 키와 Supabase Secret Key는 서버에서만 사용하며 공개 접두사 `NEXT_PUBLIC_`을 붙이지 않는다.
@@ -800,6 +800,7 @@ create table if not exists public."ARIMORI_stamp_programs" (
   title text not null,
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   description text,
+  schedule_id uuid references public."ARIMORI_schedules"(id) on delete set null,
   starts_on date not null,
   ends_on date not null,
   required_stamps integer not null default 1 check (required_stamps between 1 and 100),
@@ -814,9 +815,18 @@ create table if not exists public."ARIMORI_stamp_booths" (
   program_id uuid not null references public."ARIMORI_stamp_programs"(id) on delete cascade,
   name text not null,
   description text,
+  access_code_hash text,
   display_order integer not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- 위 이벤트 테이블을 이미 생성한 프로젝트용 추가 컬럼
+alter table public."ARIMORI_stamp_programs"
+  add column if not exists schedule_id uuid references public."ARIMORI_schedules"(id) on delete set null;
+alter table public."ARIMORI_stamp_booths"
+  add column if not exists access_code_hash text;
+create unique index if not exists "ARIMORI_stamp_programs_schedule_unique"
+  on public."ARIMORI_stamp_programs" (schedule_id) where schedule_id is not null;
 
 create table if not exists public."ARIMORI_stamp_participants" (
   id uuid primary key default gen_random_uuid(),
@@ -925,7 +935,7 @@ create policy "ARIMORI_admin_all_event_reviews" on public."ARIMORI_event_reviews
 Vercel과 로컬 `.env.local`에는 서버 전용 환경변수 `ARIMORI_SUPABASE_SECRET_KEY`가 필요하다. 이 값에는 `NEXT_PUBLIC_` 접두사를 붙이지 않는다. 참여 QR의 주소를 정확히 만들기 위해 아래 값도 사용한다.
 
 ```env
-ARIMORI_SITE_URL=https://arimori.vercel.app
+ARIMORI_SITE_URL=https://ari-mori.com
 ```
 
 이벤트 SQL 실행 후 관리자 페이지의 **이벤트** 탭에서 프로그램을 생성한다. 스탬프는 `참여 시작 QR → 참가자 카드 발급 → 각 부스 스캔 화면에서 참가자 QR 스캔` 순서이며, 후기는 `후기 이벤트 생성 → 참여 QR 저장 → 후기 승인` 순서다.

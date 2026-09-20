@@ -10,6 +10,7 @@ export type StampProgram = {
   required_stamps: number;
   is_active: boolean;
   created_at: string;
+  schedule_id: string | null;
 };
 
 export type StampBooth = {
@@ -18,6 +19,7 @@ export type StampBooth = {
   name: string;
   description: string | null;
   display_order: number;
+  access_code_hash?: string | null;
 };
 
 export type StampParticipant = {
@@ -90,6 +92,24 @@ export async function getApprovedScheduleReviews(scheduleIds: string[]) {
       .order("created_at", { ascending: false })
       .limit(200);
     return (data ?? []) as PublicScheduleReview[];
+  } catch {
+    return [];
+  }
+}
+
+export async function getLinkedStampPrograms(scheduleIds: string[]) {
+  if (!scheduleIds.length) return [] as Array<{ schedule_id: string; slug: string; title: string }>;
+  try {
+    const supabase = createServiceClient();
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const { data } = await supabase
+      .from("ARIMORI_stamp_programs")
+      .select("schedule_id, slug, title")
+      .in("schedule_id", scheduleIds)
+      .eq("is_active", true)
+      .lte("starts_on", today)
+      .gte("ends_on", today);
+    return (data ?? []) as Array<{ schedule_id: string; slug: string; title: string }>;
   } catch {
     return [];
   }

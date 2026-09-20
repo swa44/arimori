@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, type AdminActionState } from "./actions";
 import { createServiceClient } from "@/lib/supabase/service";
+import { hashBoothCode } from "@/lib/booth-auth";
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 const bool = (formData: FormData, key: string) => formData.get(key) === "on";
@@ -24,6 +25,7 @@ export async function createStampProgram(_state: AdminActionState, formData: For
   const supabase = createServiceClient();
   const { data, error } = await supabase.from("ARIMORI_stamp_programs").insert({
     title, slug, description: text(formData, "description") || null,
+    schedule_id: text(formData, "schedule_id") || null,
     starts_on: text(formData, "starts_on"), ends_on: text(formData, "ends_on"),
     required_stamps: required, is_active: bool(formData, "is_active"),
   }).select("id").single();
@@ -38,6 +40,7 @@ export async function updateStampProgram(_state: AdminActionState, formData: For
   const supabase = createServiceClient();
   const { error } = await supabase.from("ARIMORI_stamp_programs").update({
     title: text(formData, "title"), description: text(formData, "description") || null,
+    schedule_id: text(formData, "schedule_id") || null,
     starts_on: text(formData, "starts_on"), ends_on: text(formData, "ends_on"),
     required_stamps: required, is_active: bool(formData, "is_active"),
   }).eq("id", id);
@@ -46,17 +49,38 @@ export async function updateStampProgram(_state: AdminActionState, formData: For
   return { error: null, success: "저장했습니다." };
 }
 
+export async function deleteStampProgram(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const { error } = await createServiceClient().from("ARIMORI_stamp_programs").delete().eq("id", id);
+  if (error) return fail(error);
+  revalidatePath("/admin"); revalidatePath("/event"); revalidatePath("/schedule"); revalidatePath("/");
+  redirect("/admin?tab=events");
+}
+
 export async function addStampBooth(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireAdmin();
   const programId = text(formData, "program_id");
   const name = text(formData, "name");
+  const accessCode = text(formData, "access_code");
   if (!name) return { error: "부스명을 입력해 주세요." };
+  if (accessCode.length < 6) return { error: "담당자 인증코드는 6자 이상으로 입력해 주세요." };
   const supabase = createServiceClient();
   const { count } = await supabase.from("ARIMORI_stamp_booths").select("id", { count: "exact", head: true }).eq("program_id", programId);
-  const { error } = await supabase.from("ARIMORI_stamp_booths").insert({ program_id: programId, name, description: text(formData, "description") || null, display_order: count ?? 0 });
+  const { error } = await supabase.from("ARIMORI_stamp_booths").insert({ program_id: programId, name, description: text(formData, "description") || null, display_order: count ?? 0, access_code_hash: hashBoothCode(accessCode) });
   if (error) return fail(error);
   revalidatePath(`/admin/event/stamp/${programId}`);
   return { error: null, success: "부스를 추가했습니다." };
+}
+
+export async function updateBoothAccessCode(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const id = text(formData, "id"); const programId = text(formData, "program_id"); const accessCode = text(formData, "access_code");
+  if (accessCode.length < 6) return { error: "새 인증코드는 6자 이상으로 입력해 주세요." };
+  const { error } = await createServiceClient().from("ARIMORI_stamp_booths").update({ access_code_hash: hashBoothCode(accessCode) }).eq("id", id).eq("program_id", programId);
+  if (error) return fail(error);
+  revalidatePath(`/admin/event/stamp/${programId}`);
+  return { error: null, success: "담당자 인증코드를 변경했습니다." };
 }
 
 export async function deleteStampBooth(formData: FormData) {
@@ -125,6 +149,15 @@ export async function updateReviewCampaign(_state: AdminActionState, formData: F
   if (error) return fail(error);
   revalidatePath("/event"); revalidatePath(`/admin/event/review/${id}`);
   return { error: null, success: "저장했습니다." };
+}
+
+export async function deleteReviewCampaign(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const id = text(formData, "id");
+  const { error } = await createServiceClient().from("ARIMORI_review_campaigns").delete().eq("id", id);
+  if (error) return fail(error);
+  revalidatePath("/admin"); revalidatePath("/event"); revalidatePath("/schedule"); revalidatePath("/");
+  redirect("/admin?tab=events");
 }
 
 export async function updateReviewState(formData: FormData) {

@@ -23,7 +23,7 @@ export default async function StampCardPage({ params }: { params: Promise<{ slug
   const booths = (boothData ?? []) as StampBooth[];
   const completed = new Set((recordData ?? []).map((item) => item.booth_id));
   const count = Math.min(completed.size, program.required_stamps);
-  const origin = process.env.ARIMORI_SITE_URL || "https://arimori.vercel.app";
+  const origin = process.env.ARIMORI_SITE_URL || "https://ari-mori.com";
   const verifyUrl = `${origin.replace(/\/$/, "")}/event/stamp/verify/${participant.public_token}`;
 
   return <div className="event-page page-pattern page-pattern--event">
