@@ -31,10 +31,10 @@ export default async function StampCardPage({ params }: { params: Promise<{ slug
       <p className="eyebrow">MOBILE STAMP</p>
       <h1>{program.title}</h1>
       <p className="event-lead"><strong>{participant.phone.slice(-4)}</strong> 스탬프 카드</p>
-      <div className="stamp-progress"><span style={{ width: `${program.required_stamps ? count / program.required_stamps * 100 : 0}%` }} /></div>
-      <p className="stamp-progress__text"><strong>{count}</strong> / {program.required_stamps} 완료</p>
       <QrCodeCard value={verifyUrl} fileName={`${program.slug}-stamp-${participant.public_token.slice(0, 8)}.png`} title="내 참여 QR" description="부스 담당자에게 QR을 보여주세요." showValue={false} />
       <RefreshStampButton />
+      <div className="stamp-progress"><span style={{ width: `${program.required_stamps ? count / program.required_stamps * 100 : 0}%` }} /></div>
+      <p className="stamp-progress__text"><strong>{count}</strong> / {program.required_stamps} 완료</p>
       <div className="stamp-grid">{booths.map((booth, index) => <article className={completed.has(booth.id) ? "is-complete" : ""} key={booth.id}>
         <span>{completed.has(booth.id) ? <Check size={24} /> : index + 1}</span><strong>{booth.name}</strong>{booth.description && <p>{booth.description}</p>}
       </article>)}</div>
