@@ -22,7 +22,7 @@ export type Schedule = {
   isFeatured?: boolean;
   reviews?: Array<{
     id: string;
-    display_name: string;
+    phone_suffix: string;
     content: string;
     created_at: string;
   }>;

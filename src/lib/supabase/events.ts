@@ -20,6 +20,7 @@ export type StampBooth = {
   description: string | null;
   display_order: number;
   access_code_hash?: string | null;
+  access_code_encrypted?: string | null;
 };
 
 export type StampParticipant = {
@@ -59,7 +60,7 @@ export type EventReview = {
   created_at: string;
 };
 
-export type PublicScheduleReview = Pick<EventReview, "id" | "schedule_id" | "display_name" | "content" | "created_at">;
+export type PublicScheduleReview = Pick<EventReview, "id" | "schedule_id" | "content" | "created_at"> & { phone_suffix: string };
 
 export async function getActiveEventPrograms() {
   try {
@@ -85,13 +86,19 @@ export async function getApprovedScheduleReviews(scheduleIds: string[]) {
     const supabase = createServiceClient();
     const { data } = await supabase
       .from("ARIMORI_event_reviews")
-      .select("id, schedule_id, display_name, content, created_at")
+      .select("id, schedule_id, phone, content, created_at")
       .in("schedule_id", scheduleIds)
       .eq("status", "approved")
       .eq("public_agreed", true)
       .order("created_at", { ascending: false })
       .limit(200);
-    return (data ?? []) as PublicScheduleReview[];
+    return (data ?? []).map((review) => ({
+      id: review.id,
+      schedule_id: review.schedule_id,
+      phone_suffix: String(review.phone ?? "").replace(/\D/g, "").slice(-4),
+      content: review.content,
+      created_at: review.created_at,
+    })) as PublicScheduleReview[];
   } catch {
     return [];
   }

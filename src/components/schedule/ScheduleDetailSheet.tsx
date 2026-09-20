@@ -12,6 +12,7 @@ function formatKoreanDate(value: string) {
 export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Schedule; today: string; onClose: () => void }) {
   const posterUrls = schedule.posterUrls?.length ? schedule.posterUrls : schedule.posterUrl ? [schedule.posterUrl] : [];
   const [showMapChooser, setShowMapChooser] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
   const [isPosterLoading, setIsPosterLoading] = useState(Boolean(posterUrls.length));
   const [posterLoadFailed, setPosterLoadFailed] = useState(false);
   const [activePosterIndex, setActivePosterIndex] = useState(0);
@@ -74,12 +75,7 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
         <p className="detail-row"><Clock3 size={17} /><span>{formatKoreanDate(schedule.date)} · {schedule.time}</span></p>
         <p className="detail-row"><MapPin size={17} /><span>{schedule.location}</span></p>
         <p className="detail-description">{schedule.description}</p>
-        {Boolean(schedule.reviews?.length) && <section className="detail-reviews" aria-label="관객 후기">
-          <div className="detail-reviews__heading"><strong>관객 후기</strong><span>{schedule.reviews?.length}개</span></div>
-          <div className="detail-reviews__list">{schedule.reviews?.map((review) => <article key={review.id}>
-            <span>{review.display_name}</span><p>{review.content}</p>
-          </article>)}</div>
-        </section>}
+        {Boolean(schedule.reviews?.length) && <button className="detail-review-open" type="button" onClick={() => setShowReviews(true)}><strong>관객 후기</strong><span>{schedule.reviews?.length}</span></button>}
         <div className={`detail-actions ${schedule.bookingType !== "reservation" ? "has-notice" : ""}`}>
           <button className="secondary-button" type="button" onClick={() => setShowMapChooser(true)}><Navigation size={16} /> 길찾기</button>
           {schedule.bookingType === "reservation" && schedule.bookingUrl ? <a className="primary-button" href={schedule.bookingUrl} target="_blank" rel="noreferrer"><Ticket size={16} /> 공연 예매</a>
@@ -87,7 +83,9 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
               : schedule.bookingType === "free" ? <p className="booking-notice">해당 공연은 별도 예매를 받지 않습니다.</p>
                 : <p className="booking-notice">공연 예매 링크를 준비하고 있습니다.</p>}
         </div>
-        {schedule.stampProgram && <a className="primary-button detail-stamp-link" href={`/event/stamp/${schedule.stampProgram.slug}`}><Stamp size={17} /> 스탬프 참여하기</a>}
+        {schedule.stampProgram && <div className="detail-event-links">
+          {schedule.stampProgram && <a className="primary-button" href={`/event/stamp/${schedule.stampProgram.slug}`}><Stamp size={17} /> 스탬프 참여하기</a>}
+        </div>}
       </div>
       <button className="secondary-button detail-sheet__bottom-close" type="button" onClick={onClose}>닫기</button>
       {isPosterLoading && <div className="detail-sheet__loading" role="status" aria-live="polite"><span className="detail-sheet__spinner" aria-hidden="true" /><span>공연 정보를 불러오는 중입니다.</span></div>}
@@ -97,6 +95,14 @@ export function ScheduleDetailSheet({ schedule, today, onClose }: { schedule: Sc
       <section className="map-chooser map-modal" role="dialog" aria-modal="true" aria-label="지도 앱 선택">
         <div className="map-chooser__heading"><div><strong>지도 앱 선택</strong><span>{schedule.mapQuery ?? schedule.location}</span></div><button type="button" onClick={() => setShowMapChooser(false)} aria-label="지도 앱 선택 닫기"><X size={17} /></button></div>
         <div className="map-chooser__options"><button type="button" onClick={() => openMapApp("naver")}>네이버 지도</button><button type="button" onClick={() => openMapApp("kakao")}>카카오맵</button><button type="button" onClick={() => openMapApp("tmap")}>TMAP</button></div>
+      </section>
+    </div>}
+
+    {showReviews && <div className="public-review-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setShowReviews(false)}>
+      <section className="public-review-modal" role="dialog" aria-modal="true" aria-labelledby="public-review-title">
+        <header><div><h3 id="public-review-title">관객 후기</h3><p>{schedule.title}</p></div><button type="button" onClick={() => setShowReviews(false)} aria-label="관객 후기 닫기"><X size={19} /></button></header>
+        <div className="public-review-list">{schedule.reviews?.map((review) => <article key={review.id}><span>{review.phone_suffix}</span><p>{review.content}</p></article>)}</div>
+        <button className="secondary-button public-review-close" type="button" onClick={() => setShowReviews(false)}>닫기</button>
       </section>
     </div>}
   </div>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { AdminActionState } from "@/app/admin/actions";
 import { addStampBooth, createReviewCampaign, createStampProgram, updateBoothAccessCode, updateReviewCampaign, updateStampProgram } from "@/app/admin/event-actions";
 import type { ReviewCampaign, StampProgram } from "@/lib/supabase/events";
@@ -32,15 +32,40 @@ export function BoothForm({ programId }: { programId: string }) {
   const [state, formAction, pending] = useActionState(addStampBooth, initial);
   return <form action={formAction} className="admin-form admin-booth-form"><input type="hidden" name="program_id" value={programId} />
     <div className="admin-form__row"><label><span>부스명</span><input name="name" required placeholder="전통악기 체험" /></label><label><span>짧은 설명</span><input name="description" placeholder="선택 입력" /></label></div>
-    <label><span>담당자 인증코드</span><input name="access_code" type="password" minLength={6} required autoComplete="new-password" placeholder="6자 이상" /><small>초청한 부스 담당자가 로그인할 때 사용하는 코드입니다.</small></label>
+    <label><span>담당자 인증코드</span><input name="access_code" type="text" inputMode="numeric" pattern="[0-9]{6,}" minLength={6} required autoComplete="off" placeholder="숫자 6자리 이상" /><small>초청한 부스 담당자가 로그인할 때 사용하는 코드입니다.</small></label>
     <Message state={state} /><button className="secondary-button" disabled={pending}>{pending ? "추가 중…" : "부스 추가"}</button>
   </form>;
 }
 
-export function BoothCodeForm({ boothId, programId, configured }: { boothId: string; programId: string; configured: boolean }) {
+export function BoothCodeForm({ boothId, programId, configured, currentCode }: { boothId: string; programId: string; configured: boolean; currentCode?: string | null }) {
   const [state, formAction, pending] = useActionState(updateBoothAccessCode, initial);
+  const [copied, setCopied] = useState(false);
+
+  async function copyCurrentCode() {
+    if (!currentCode) return;
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentCode);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = currentCode;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        textarea.remove();
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      window.prompt("인증코드를 복사해 주세요.", currentCode);
+    }
+  }
+
   return <form action={formAction} className="booth-code-form"><input type="hidden" name="id" value={boothId} /><input type="hidden" name="program_id" value={programId} />
-    <input name="access_code" type="password" minLength={6} required autoComplete="new-password" aria-label="새 담당자 인증코드" placeholder={configured ? "새 코드 6자 이상" : "코드 6자 이상"} />
+    <div className="booth-code-current"><span>현재 인증코드</span>{currentCode ? <><code>{currentCode}</code><button type="button" onClick={copyCurrentCode}>{copied ? "복사됨" : "복사"}</button></> : <small>{configured ? "기존 코드는 확인할 수 없습니다. 새 코드로 변경해 주세요." : "설정되지 않음"}</small>}</div>
+    <input name="access_code" type="text" inputMode="numeric" pattern="[0-9]{6,}" minLength={6} required autoComplete="off" aria-label="새 담당자 인증코드" placeholder={configured ? "새 숫자 코드 6자리 이상" : "숫자 코드 6자리 이상"} />
     <button className="secondary-button" disabled={pending}>{pending ? "변경 중…" : configured ? "코드 변경" : "코드 설정"}</button>
     {state.error && <p className="form-message is-error">{state.error}</p>}{state.success && <p className="form-message is-success">{state.success}</p>}
   </form>;

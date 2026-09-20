@@ -124,10 +124,8 @@ export async function recordStaffStamp(_state: EventActionState, formData: FormD
 
 export async function submitEventReview(_state: EventActionState, formData: FormData): Promise<EventActionState> {
   const accessToken = String(formData.get("access_token") ?? "");
-  const displayName = String(formData.get("display_name") ?? "").trim();
   const phone = digits(formData.get("phone"));
   const content = String(formData.get("content") ?? "").trim();
-  if (!displayName || displayName.length > 30) return { error: "이름 또는 별명을 30자 이내로 입력해 주세요." };
   if (phone.length < 10 || phone.length > 11) return { error: "연락처를 정확히 입력해 주세요." };
   if (!content || content.length > 500) return { error: "후기를 500자 이내로 입력해 주세요." };
   if (formData.get("privacy_agreed") !== "on") return { error: "개인정보 수집 및 이용에 동의해 주세요." };
@@ -141,11 +139,12 @@ export async function submitEventReview(_state: EventActionState, formData: Form
     const { error } = await supabase.from("ARIMORI_event_reviews").insert({
       campaign_id: campaign.id,
       schedule_id: campaign.schedule_id,
-      display_name: displayName,
+      display_name: "익명",
       phone,
       content,
       privacy_agreed: true,
-      public_agreed: formData.get("public_agreed") === "on",
+      public_agreed: true,
+      status: "approved",
     });
     if (error?.code === "23505") return { error: "이 공연에는 이미 후기를 남기셨습니다." };
     if (error) return { error: `후기 접수 실패: ${error.message}` };

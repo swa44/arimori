@@ -816,6 +816,7 @@ create table if not exists public."ARIMORI_stamp_booths" (
   name text not null,
   description text,
   access_code_hash text,
+  access_code_encrypted text,
   display_order integer not null default 0,
   created_at timestamptz not null default now()
 );
@@ -825,6 +826,8 @@ alter table public."ARIMORI_stamp_programs"
   add column if not exists schedule_id uuid references public."ARIMORI_schedules"(id) on delete set null;
 alter table public."ARIMORI_stamp_booths"
   add column if not exists access_code_hash text;
+alter table public."ARIMORI_stamp_booths"
+  add column if not exists access_code_encrypted text;
 create unique index if not exists "ARIMORI_stamp_programs_schedule_unique"
   on public."ARIMORI_stamp_programs" (schedule_id) where schedule_id is not null;
 

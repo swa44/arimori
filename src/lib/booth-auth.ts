@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
 const COOKIE_NAME = "ARIMORI_booth_session";
@@ -24,6 +24,30 @@ export function verifyBoothCode(code: string, stored: string) {
   const actual = scryptSync(code, salt, 64);
   const expected = Buffer.from(expectedHex, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+function encryptionKey() {
+  return createHash("sha256").update(secret()).digest();
+}
+
+export function encryptBoothCode(code: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(code, "utf8"), cipher.final()]);
+  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
+}
+
+export function decryptBoothCode(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const [ivText, tagText, encryptedText] = value.split(".");
+    if (!ivText || !tagText || !encryptedText) return null;
+    const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(ivText, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagText, "base64url"));
+    return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 function signature(payload: string) {

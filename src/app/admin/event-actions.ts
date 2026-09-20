@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, type AdminActionState } from "./actions";
 import { createServiceClient } from "@/lib/supabase/service";
-import { hashBoothCode } from "@/lib/booth-auth";
+import { encryptBoothCode, hashBoothCode } from "@/lib/booth-auth";
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 const bool = (formData: FormData, key: string) => formData.get(key) === "on";
@@ -64,10 +64,10 @@ export async function addStampBooth(_state: AdminActionState, formData: FormData
   const name = text(formData, "name");
   const accessCode = text(formData, "access_code");
   if (!name) return { error: "부스명을 입력해 주세요." };
-  if (accessCode.length < 6) return { error: "담당자 인증코드는 6자 이상으로 입력해 주세요." };
+  if (!/^\d{6,}$/.test(accessCode)) return { error: "담당자 인증코드는 숫자 6자리 이상으로 입력해 주세요." };
   const supabase = createServiceClient();
   const { count } = await supabase.from("ARIMORI_stamp_booths").select("id", { count: "exact", head: true }).eq("program_id", programId);
-  const { error } = await supabase.from("ARIMORI_stamp_booths").insert({ program_id: programId, name, description: text(formData, "description") || null, display_order: count ?? 0, access_code_hash: hashBoothCode(accessCode) });
+  const { error } = await supabase.from("ARIMORI_stamp_booths").insert({ program_id: programId, name, description: text(formData, "description") || null, display_order: count ?? 0, access_code_hash: hashBoothCode(accessCode), access_code_encrypted: encryptBoothCode(accessCode) });
   if (error) return fail(error);
   revalidatePath(`/admin/event/stamp/${programId}`);
   return { error: null, success: "부스를 추가했습니다." };
@@ -76,8 +76,8 @@ export async function addStampBooth(_state: AdminActionState, formData: FormData
 export async function updateBoothAccessCode(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireAdmin();
   const id = text(formData, "id"); const programId = text(formData, "program_id"); const accessCode = text(formData, "access_code");
-  if (accessCode.length < 6) return { error: "새 인증코드는 6자 이상으로 입력해 주세요." };
-  const { error } = await createServiceClient().from("ARIMORI_stamp_booths").update({ access_code_hash: hashBoothCode(accessCode) }).eq("id", id).eq("program_id", programId);
+  if (!/^\d{6,}$/.test(accessCode)) return { error: "새 인증코드는 숫자 6자리 이상으로 입력해 주세요." };
+  const { error } = await createServiceClient().from("ARIMORI_stamp_booths").update({ access_code_hash: hashBoothCode(accessCode), access_code_encrypted: encryptBoothCode(accessCode) }).eq("id", id).eq("program_id", programId);
   if (error) return fail(error);
   revalidatePath(`/admin/event/stamp/${programId}`);
   return { error: null, success: "담당자 인증코드를 변경했습니다." };
@@ -166,6 +166,32 @@ export async function updateReviewState(formData: FormData) {
   const supabase = createServiceClient();
   if (action === "delete") await supabase.from("ARIMORI_event_reviews").delete().eq("id", id);
   else if (action === "winner") await supabase.from("ARIMORI_event_reviews").update({ is_winner: bool(formData, "next_winner") }).eq("id", id);
-  else if (["pending", "approved", "rejected"].includes(action)) await supabase.from("ARIMORI_event_reviews").update({ status: action }).eq("id", id);
+  else if (action === "approved") await supabase.from("ARIMORI_event_reviews").update({ status: "approved", public_agreed: true }).eq("id", id);
+  else if (["pending", "rejected"].includes(action)) await supabase.from("ARIMORI_event_reviews").update({ status: action }).eq("id", id);
   revalidatePath(`/admin/event/review/${campaignId}`); revalidatePath("/schedule"); revalidatePath("/");
+}
+
+export async function bulkUpdateReviewState(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const campaignId = text(formData, "campaign_id");
+  const ids = formData.getAll("review_ids").map(String).filter(Boolean);
+  const action = text(formData, "bulk_action");
+  if (!ids.length) return { error: "처리할 후기를 선택해 주세요." };
+  if (!["approved", "rejected", "winner", "unwinner", "delete"].includes(action)) return { error: "일괄 작업을 선택해 주세요." };
+
+  const supabase = createServiceClient();
+  let error: { message: string } | null = null;
+  if (action === "delete") {
+    ({ error } = await supabase.from("ARIMORI_event_reviews").delete().eq("campaign_id", campaignId).in("id", ids));
+  } else if (action === "approved") {
+    ({ error } = await supabase.from("ARIMORI_event_reviews").update({ status: "approved", public_agreed: true }).eq("campaign_id", campaignId).in("id", ids));
+  } else if (action === "rejected") {
+    ({ error } = await supabase.from("ARIMORI_event_reviews").update({ status: "rejected" }).eq("campaign_id", campaignId).in("id", ids));
+  } else {
+    ({ error } = await supabase.from("ARIMORI_event_reviews").update({ is_winner: action === "winner" }).eq("campaign_id", campaignId).in("id", ids));
+  }
+  if (error) return fail(error);
+  revalidatePath(`/admin/event/review/${campaignId}`); revalidatePath("/schedule"); revalidatePath("/");
+  const actionLabel = { approved: "공개 승인", rejected: "비공개", winner: "당첨 표시", unwinner: "당첨 해제", delete: "삭제" }[action];
+  return { error: null, success: `${ids.length}개 후기를 ${actionLabel} 처리했습니다.` };
 }
