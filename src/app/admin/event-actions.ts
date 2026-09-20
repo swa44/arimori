@@ -118,7 +118,7 @@ export async function recordStamp(_state: AdminActionState, formData: FormData):
   if ((count ?? 0) >= (program?.required_stamps ?? Number.MAX_SAFE_INTEGER)) {
     await supabase.from("ARIMORI_stamp_participants").update({ completed_at: new Date().toISOString() }).eq("id", participant.id).is("completed_at", null);
   }
-  return { error: null, success: `연락처 뒷자리 ${phoneSuffix} · ${booth.name} 스탬프를 기록했습니다.` };
+  return { error: null, success: `${phoneSuffix} 참가자님 ${booth.name} 스탬프를 기록했습니다.` };
 }
 
 export async function redeemStampReward(formData: FormData) {

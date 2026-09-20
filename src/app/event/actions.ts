@@ -115,7 +115,7 @@ export async function recordStaffStamp(_state: EventActionState, formData: FormD
       supabase.from("ARIMORI_stamp_programs").select("required_stamps").eq("id", participant.program_id).single(),
     ]);
     if ((count ?? 0) >= (program?.required_stamps ?? Number.MAX_SAFE_INTEGER)) await supabase.from("ARIMORI_stamp_participants").update({ completed_at: new Date().toISOString() }).eq("id", participant.id).is("completed_at", null);
-    return { error: null, success: `연락처 뒷자리 ${phoneSuffix} · ${booth.name} 스탬프를 기록했습니다.` };
+    return { error: null, success: `${phoneSuffix} 참가자님 ${booth.name} 스탬프를 기록했습니다.` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "스탬프 기록 중 오류가 발생했습니다." };
   }
