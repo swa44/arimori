@@ -20,7 +20,6 @@ export function StampJoinForm({ programId, slug }: { programId: string; slug: st
     {mode === "join" ? <form className="event-form" action={joinAction}>
       <input type="hidden" name="program_id" value={programId} />
       <input type="hidden" name="slug" value={slug} />
-      <label><span>이름 또는 별명</span><input name="display_name" maxLength={30} required /></label>
       <label><span>연락처</span><input name="phone" type="tel" inputMode="tel" placeholder="010-0000-0000" required /></label>
       <label className="event-check"><input name="privacy_agreed" type="checkbox" required /><span>스탬프 참여 확인과 경품 지급을 위한 개인정보 수집 및 이용에 동의합니다.</span></label>
       <button className="primary-button event-submit" type="submit" disabled={joinPending}>{joinPending && <LoaderCircle className="spin" size={17} />}{joinPending ? "참여 중..." : "모바일 스탬프 참여하기"}</button>

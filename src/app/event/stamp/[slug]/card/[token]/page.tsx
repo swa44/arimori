@@ -30,7 +30,7 @@ export default async function StampCardPage({ params }: { params: Promise<{ slug
     <section className="event-card-page">
       <p className="eyebrow">MOBILE STAMP</p>
       <h1>{program.title}</h1>
-      <p className="event-lead"><strong>{participant.display_name}</strong>님의 스탬프 카드</p>
+      <p className="event-lead"><strong>{participant.phone.slice(-4)}</strong> 스탬프 카드</p>
       <div className="stamp-progress"><span style={{ width: `${program.required_stamps ? count / program.required_stamps * 100 : 0}%` }} /></div>
       <p className="stamp-progress__text"><strong>{count}</strong> / {program.required_stamps} 완료</p>
       <div className="stamp-grid">{booths.map((booth, index) => <article className={completed.has(booth.id) ? "is-complete" : ""} key={booth.id}>
