@@ -23,6 +23,10 @@ export default async function StampCardPage({ params }: { params: Promise<{ slug
   const booths = (boothData ?? []) as StampBooth[];
   const completed = new Set((recordData ?? []).map((item) => item.booth_id));
   const count = Math.min(completed.size, program.required_stamps);
+  const { data: winnerData } = program.winners_announced
+    ? await supabase.from("ARIMORI_stamp_participants").select("phone").eq("program_id", program.id).eq("is_winner", true).not("completed_at", "is", null).order("created_at")
+    : { data: [] as Array<{ phone: string }> };
+  const winnerSuffixes = (winnerData ?? []).map((winner) => String(winner.phone).replace(/\D/g, "").slice(-4));
   const origin = process.env.ARIMORI_SITE_URL || "https://ari-mori.com";
   const verifyUrl = `${origin.replace(/\/$/, "")}/event/stamp/verify/${participant.public_token}`;
 
@@ -38,7 +42,8 @@ export default async function StampCardPage({ params }: { params: Promise<{ slug
       <div className="stamp-grid">{booths.map((booth, index) => <article className={completed.has(booth.id) ? "is-complete" : ""} key={booth.id}>
         <span>{completed.has(booth.id) ? <Check size={24} /> : index + 1}</span><strong>{booth.name}</strong>{booth.description && <p>{booth.description}</p>}
       </article>)}</div>
-      {participant.completed_at && <div className="event-complete-banner"><strong>모든 체험을 완료했어요!</strong><span>{participant.reward_redeemed_at ? "기념품 수령이 완료되었습니다." : "운영 부스에서 이 화면을 보여 주세요."}</span></div>}
+      {participant.completed_at && <div className="event-complete-banner"><strong>모든 체험을 완료했어요!</strong><span>당첨자 발표를 기다려 주세요.</span></div>}
+      {program.winners_announced && <section className="stamp-winner-result"><p className="eyebrow">WINNER</p><h2>당첨자 발표</h2>{winnerSuffixes.length ? <><p>축하드립니다! 당첨된 연락처 뒷자리입니다.</p><div>{winnerSuffixes.map((suffix, index) => <strong className={participant.is_winner && suffix === participant.phone.slice(-4) ? "is-mine" : ""} key={`${suffix}-${index}`}>{suffix}</strong>)}</div></> : <p>선정된 당첨자가 없습니다.</p>}</section>}
     </section>
   </div>;
 }

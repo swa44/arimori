@@ -37,6 +37,7 @@ export async function updateStampProgram(_state: AdminActionState, formData: For
   await requireAdmin();
   const id = text(formData, "id");
   const required = Number(text(formData, "required_stamps"));
+  if (!Number.isInteger(required) || required < 1 || required > 100) return { error: "필요 스탬프 수는 1~100으로 입력해 주세요." };
   const supabase = createServiceClient();
   const { error } = await supabase.from("ARIMORI_stamp_programs").update({
     title: text(formData, "title"), description: text(formData, "description") || null,
@@ -45,6 +46,26 @@ export async function updateStampProgram(_state: AdminActionState, formData: For
     required_stamps: required, is_active: bool(formData, "is_active"),
   }).eq("id", id);
   if (error) return fail(error);
+
+  const { data: participants, error: participantError } = await supabase.from("ARIMORI_stamp_participants").select("id, completed_at").eq("program_id", id);
+  if (participantError) return fail(participantError);
+  const participantIds = (participants ?? []).map((participant) => participant.id);
+  if (participantIds.length) {
+    const { data: records, error: recordError } = await supabase.from("ARIMORI_stamp_records").select("participant_id").in("participant_id", participantIds);
+    if (recordError) return fail(recordError);
+    const stampCounts = new Map<string, number>();
+    for (const record of records ?? []) stampCounts.set(record.participant_id, (stampCounts.get(record.participant_id) ?? 0) + 1);
+    const completeIds = participantIds.filter((participantId) => (stampCounts.get(participantId) ?? 0) >= required);
+    const progressIds = participantIds.filter((participantId) => (stampCounts.get(participantId) ?? 0) < required);
+    if (completeIds.length) {
+      const { error: completionError } = await supabase.from("ARIMORI_stamp_participants").update({ completed_at: new Date().toISOString() }).in("id", completeIds).is("completed_at", null);
+      if (completionError) return fail(completionError);
+    }
+    if (progressIds.length) {
+      const { error: progressError } = await supabase.from("ARIMORI_stamp_participants").update({ completed_at: null, reward_redeemed_at: null, is_winner: false }).in("id", progressIds);
+      if (progressError) return fail(progressError);
+    }
+  }
   revalidatePath("/event"); revalidatePath(`/admin/event/stamp/${id}`);
   return { error: null, success: "저장했습니다." };
 }
@@ -121,12 +142,45 @@ export async function recordStamp(_state: AdminActionState, formData: FormData):
   return { error: null, success: `${booth.name} 스탬프 기록완료!`, participant: `${phoneSuffix} 참가자` };
 }
 
-export async function redeemStampReward(formData: FormData) {
+export async function updateStampWinner(formData: FormData) {
   await requireAdmin();
-  const participantId = text(formData, "participant_id"); const programId = text(formData, "program_id");
-  const { error } = await createServiceClient().from("ARIMORI_stamp_participants").update({ reward_redeemed_at: new Date().toISOString() }).eq("id", participantId).not("completed_at", "is", null);
+  const participantId = text(formData, "participant_id"); const programId = text(formData, "program_id"); const nextWinner = bool(formData, "next_winner");
+  let query = createServiceClient().from("ARIMORI_stamp_participants").update({ is_winner: nextWinner }).eq("id", participantId).eq("program_id", programId);
+  if (nextWinner) query = query.not("completed_at", "is", null);
+  const { error } = await query;
   if (error) throw new Error(error.message);
   revalidatePath(`/admin/event/stamp/${programId}`);
+}
+
+export async function bulkUpdateStampWinners(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const programId = text(formData, "program_id");
+  const ids = formData.getAll("participant_ids").map(String).filter(Boolean);
+  const action = text(formData, "bulk_action");
+  if (!ids.length) return { error: "처리할 참여자를 선택해 주세요." };
+  if (!['winner', 'unwinner'].includes(action)) return { error: "일괄 작업을 선택해 주세요." };
+  let query = createServiceClient().from("ARIMORI_stamp_participants").update({ is_winner: action === "winner" }).eq("program_id", programId).in("id", ids);
+  if (action === "winner") query = query.not("completed_at", "is", null);
+  const { error } = await query;
+  if (error) return fail(error);
+  revalidatePath(`/admin/event/stamp/${programId}`);
+  return { error: null, success: `${ids.length}명을 ${action === "winner" ? "당첨" : "당첨 해제"} 처리했습니다.` };
+}
+
+export async function toggleStampWinnerAnnouncement(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireAdmin();
+  const programId = text(formData, "program_id"); const announced = bool(formData, "next_announced");
+  const supabase = createServiceClient();
+  if (announced) {
+    const { count, error: countError } = await supabase.from("ARIMORI_stamp_participants").select("id", { count: "exact", head: true }).eq("program_id", programId).eq("is_winner", true).not("completed_at", "is", null);
+    if (countError) return fail(countError);
+    if (!count) return { error: "먼저 스탬프 완료자 중 당첨자를 선택해 주세요." };
+  }
+  const { error } = await supabase.from("ARIMORI_stamp_programs").update({ winners_announced: announced }).eq("id", programId);
+  if (error) return fail(error);
+  revalidatePath(`/admin/event/stamp/${programId}`);
+  revalidatePath("/event/stamp/[slug]/card/[token]", "page");
+  return { error: null, success: announced ? "당첨자를 발표했습니다." : "당첨자 발표를 취소했습니다." };
 }
 
 export async function createReviewCampaign(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {

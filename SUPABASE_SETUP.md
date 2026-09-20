@@ -805,6 +805,7 @@ create table if not exists public."ARIMORI_stamp_programs" (
   ends_on date not null,
   required_stamps integer not null default 1 check (required_stamps between 1 and 100),
   is_active boolean not null default true,
+  winners_announced boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   check (ends_on >= starts_on)
@@ -840,9 +841,16 @@ create table if not exists public."ARIMORI_stamp_participants" (
   privacy_agreed boolean not null check (privacy_agreed),
   completed_at timestamptz,
   reward_redeemed_at timestamptz,
+  is_winner boolean not null default false,
   created_at timestamptz not null default now(),
   unique (program_id, phone)
 );
+
+-- 위 스탬프 테이블을 이미 생성한 프로젝트용 당첨자 발표 컬럼
+alter table public."ARIMORI_stamp_programs"
+  add column if not exists winners_announced boolean not null default false;
+alter table public."ARIMORI_stamp_participants"
+  add column if not exists is_winner boolean not null default false;
 
 create table if not exists public."ARIMORI_stamp_records" (
   id uuid primary key default gen_random_uuid(),

@@ -9,6 +9,7 @@ export type StampProgram = {
   ends_on: string;
   required_stamps: number;
   is_active: boolean;
+  winners_announced: boolean;
   created_at: string;
   schedule_id: string | null;
 };
@@ -32,6 +33,7 @@ export type StampParticipant = {
   privacy_agreed: boolean;
   completed_at: string | null;
   reward_redeemed_at: string | null;
+  is_winner: boolean;
   created_at: string;
 };
 
