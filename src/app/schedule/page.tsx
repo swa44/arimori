@@ -12,5 +12,5 @@ export default async function SchedulePage() {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
-  return <div className="schedule-page"><CalendarView schedules={schedules} today={today} /></div>;
+  return <div className="schedule-page page-pattern page-pattern--schedule"><CalendarView schedules={schedules} today={today} /></div>;
 }

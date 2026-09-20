@@ -1,14 +1,13 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { FeaturedEventCard } from "@/components/home/FeaturedEventCard";
-import { newsItems } from "@/data/content";
+import { NewsSection } from "@/components/home/NewsSection";
+import { getPublicNews } from "@/lib/supabase/news";
 import { getPublicSchedules } from "@/lib/supabase/schedules";
 import { getHomeHeroSettings } from "@/lib/supabase/site-settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [schedules, hero] = await Promise.all([getPublicSchedules(), getHomeHeroSettings()]);
+  const [schedules, hero, news] = await Promise.all([getPublicSchedules(), getHomeHeroSettings(), getPublicNews()]);
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
@@ -37,24 +36,7 @@ export default async function HomePage() {
         <FeaturedEventCard schedule={featured ?? null} today={today} />
       </section>
 
-      <section className="home-section">
-        <div className="section-heading">
-          <h2 className="section-title">아리모리 소식</h2>
-          <Link href="/about" className="section-link">더 알아보기 <ChevronRight size={14} /></Link>
-        </div>
-        <div className="news-list">
-          {newsItems.map((item) => (
-            <article className="news-item" key={item.title}>
-              <span className="news-item__date">{item.date}</span>
-              <div>
-                <span className={`tag ${item.tag === "기록" ? "tag--brown" : item.tag === "안내" ? "tag--teal" : ""}`}>{item.tag}</span>
-                <h3>{item.title}</h3>
-              </div>
-              <ChevronRight size={16} color="#99938a" />
-            </article>
-          ))}
-        </div>
-      </section>
+      <NewsSection news={news} />
     </>
   );
 }

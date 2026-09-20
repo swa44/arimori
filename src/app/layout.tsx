@@ -12,8 +12,29 @@ const notoSerifKr = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.ARIMORI_SITE_URL ?? "https://arimori.vercel.app"),
   title: { default: "아리모리", template: "%s | 아리모리" },
   description: "전통을 오늘의 감각으로 잇는 지역 문화예술 공연팀 아리모리입니다.",
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    siteName: "아리모리앙상블",
+    title: "아리모리앙상블",
+    description: "전통악기와 서양악기가 어우러지는 퓨전국악 앙상블",
+    images: [{
+      url: "/images/arimori-og.jpg",
+      width: 1200,
+      height: 630,
+      alt: "아리모리앙상블 단체 사진",
+      type: "image/jpeg",
+    }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "아리모리앙상블",
+    description: "전통악기와 서양악기가 어우러지는 퓨전국악 앙상블",
+    images: ["/images/arimori-og.jpg"],
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

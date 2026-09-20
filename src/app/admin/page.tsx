@@ -4,6 +4,7 @@ import { ChevronRight, Pencil, Plus, Search } from "lucide-react";
 import { DeleteScheduleButton } from "@/components/admin/DeleteScheduleButton";
 import { DeleteVideoButton } from "@/components/admin/DeleteVideoButton";
 import { DeleteInquiryButton } from "@/components/admin/DeleteInquiryButton";
+import { DeleteNewsButton } from "@/components/admin/DeleteNewsButton";
 import { InquirySettingsForm } from "@/components/admin/InquirySettingsForm";
 import { AboutImageForm } from "@/components/admin/AboutImageForm";
 import { HomeHeroForm } from "@/components/admin/HomeHeroForm";
@@ -11,11 +12,12 @@ import { LogoutButton } from "@/components/admin/LogoutButton";
 import { createClient } from "@/lib/supabase/server";
 import type { ScheduleRow } from "@/lib/supabase/schedules";
 import type { VideoRow } from "@/lib/supabase/videos";
+import type { NewsRow } from "@/lib/supabase/news";
 import { defaultHomeHero, getSiteImageUrl } from "@/lib/supabase/site-settings";
 
 export const metadata = { title: "관리자" };
 const pageSize = 20;
-type AdminTab = "schedules" | "videos" | "inquiries" | "home" | "about";
+type AdminTab = "schedules" | "videos" | "news" | "inquiries" | "home" | "about";
 type InquiryRow = { id: string; name: string; phone: string; email: string; message: string; status: "new" | "in_progress" | "completed"; sms_status: "pending" | "sent" | "failed" | "not_configured"; created_at: string };
 const inquiryStatusLabel = { new: "새 문의", in_progress: "처리 중", completed: "처리 완료" };
 
@@ -33,7 +35,7 @@ function dateTime(value: string) {
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ tab?: string; view?: string; page?: string; q?: string; year?: string }> }) {
   const params = await searchParams;
-  const activeTab: AdminTab = params.tab === "videos" || params.tab === "inquiries" || params.tab === "home" || params.tab === "about" ? params.tab : "schedules";
+  const activeTab: AdminTab = params.tab === "videos" || params.tab === "news" || params.tab === "inquiries" || params.tab === "home" || params.tab === "about" ? params.tab : "schedules";
   const scheduleView = params.view === "past" ? "past" : "upcoming";
   const requestedPage = Number.parseInt(params.page ?? "1", 10);
   const currentPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
@@ -48,6 +50,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   let schedules: ScheduleRow[] = [];
   let scheduleCount = 0;
   let videos: VideoRow[] = [];
+  let news: NewsRow[] = [];
   let inquiries: InquiryRow[] = [];
   let inquiryCount = 0;
   let notificationPhone = "";
@@ -71,6 +74,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   } else if (activeTab === "videos") {
     const { data } = await supabase.from("ARIMORI_videos").select("*").order("display_order", { ascending: true }).order("created_at", { ascending: false });
     videos = (data ?? []) as VideoRow[];
+  } else if (activeTab === "news") {
+    const { data } = await supabase.from("ARIMORI_news").select("*").order("created_at", { ascending: false });
+    news = (data ?? []) as NewsRow[];
   } else if (activeTab === "inquiries") {
     const from = (currentPage - 1) * pageSize;
     const [{ data, count }, { data: settings }] = await Promise.all([
@@ -99,6 +105,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <nav className="admin-tabs" aria-label="관리 메뉴">
         <Link href="/admin?tab=schedules" className={activeTab === "schedules" ? "is-active" : ""}>일정 관리</Link>
         <Link href="/admin?tab=videos" className={activeTab === "videos" ? "is-active" : ""}>영상 관리</Link>
+        <Link href="/admin?tab=news" className={activeTab === "news" ? "is-active" : ""}>소식 관리</Link>
         <Link href="/admin?tab=inquiries" className={activeTab === "inquiries" ? "is-active" : ""}>공연문의</Link>
         <Link href="/admin?tab=home" className={activeTab === "home" ? "is-active" : ""}>홈 화면</Link>
         <Link href="/admin?tab=about" className={activeTab === "about" ? "is-active" : ""}>소개 관리</Link>
@@ -122,6 +129,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       {activeTab === "videos" && <>
         <div className="admin-heading"><div><h1>공연 영상</h1><p>등록된 영상 {videos.length}개</p></div><Link href="/admin/video/new" className="primary-button"><Plus size={16} /> 새 영상</Link></div>
         <section className="admin-card">{videos.length === 0 && <div className="admin-empty">등록된 영상이 없습니다. 유튜브 영상을 추가해 보세요.</div>}{videos.map((item) => <article className="admin-event" key={item.id}><div className="admin-video-thumb"><img src={`https://i.ytimg.com/vi/${item.youtube_id}/default.jpg`} alt="" /></div><div><h2>{item.title}</h2><p>순서 {item.display_order} · {item.is_public ? "공개" : "비공개"}</p></div><div className="admin-actions"><Link href={`/admin/video/${item.id}/edit`} aria-label={`${item.title} 수정`}><Pencil size={16} /></Link><DeleteVideoButton id={item.id} title={item.title} /></div></article>)}</section>
+      </>}
+
+      {activeTab === "news" && <>
+        <div className="admin-heading"><div><h1>아리모리 소식</h1><p>등록된 소식 {news.length}개</p></div><Link href="/admin/news/new" className="primary-button"><Plus size={16} /> 새 소식</Link></div>
+        <section className="admin-card">
+          {news.length === 0 && <div className="admin-empty">등록된 소식이 없습니다.</div>}
+          {news.map((item) => <article className="admin-event" key={item.id}><span className="tag tag--teal">{item.badge}</span><div><h2>{item.title}</h2><p>{item.content}</p></div><div className="admin-actions"><Link href={`/admin/news/${item.id}/edit`} aria-label={`${item.title} 수정`}><Pencil size={16} /></Link><DeleteNewsButton id={item.id} title={item.title} /></div></article>)}
+        </section>
       </>}
 
       {activeTab === "inquiries" && <>

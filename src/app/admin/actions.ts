@@ -392,6 +392,56 @@ export async function deleteVideo(_state: AdminActionState, formData: FormData):
   return { error: null };
 }
 
+function newsValues(formData: FormData) {
+  const badge = String(formData.get("badge") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const content = String(formData.get("content") ?? "").trim();
+  if (!badge || !title || !content) throw new Error("뱃지 문구와 제목, 내용을 모두 입력해 주세요.");
+  if (badge.length > 20) throw new Error("뱃지 문구는 20자 이내로 입력해 주세요.");
+  if (title.length > 160) throw new Error("제목은 160자 이내로 입력해 주세요.");
+  if (content.length > 5000) throw new Error("내용은 5,000자 이내로 입력해 주세요.");
+  return { badge, title, content };
+}
+
+export async function createNews(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase, user } = await requireAdmin();
+  try {
+    const { error } = await supabase.from("ARIMORI_news").insert({ ...newsValues(formData), created_by: user.id });
+    if (error) throw new Error(`소식 등록 실패: ${error.message}`);
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?tab=news");
+}
+
+export async function updateNews(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  try {
+    if (!id) throw new Error("수정할 소식을 확인할 수 없습니다.");
+    const { error } = await supabase.from("ARIMORI_news").update(newsValues(formData)).eq("id", id);
+    if (error) throw new Error(`소식 수정 실패: ${error.message}`);
+  } catch (error) {
+    return actionError(error);
+  }
+  revalidatePath("/");
+  revalidatePath("/admin");
+  redirect("/admin?tab=news");
+}
+
+export async function deleteNews(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { error: "삭제할 소식을 확인할 수 없습니다." };
+  const { error } = await supabase.from("ARIMORI_news").delete().eq("id", id);
+  if (error) return { error: `소식 삭제 실패: ${error.message}` };
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { error: null };
+}
+
 export async function updateInquirySettings(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   const { supabase } = await requireAdmin();
   const notificationPhone = String(formData.get("notification_phone") ?? "").replace(/\D/g, "");

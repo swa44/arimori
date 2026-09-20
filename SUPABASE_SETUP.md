@@ -318,6 +318,61 @@ where poster_path is not null
   and coalesce(array_length(poster_paths, 1), 0) = 0;
 ```
 
+### 아리모리 소식 관리
+
+홈 화면 소식과 관리자 소식 관리 기능을 사용하기 전에 아래 SQL 블록 전체를 한 번 실행한다.
+
+```sql
+create table if not exists public."ARIMORI_news" (
+  id uuid primary key default gen_random_uuid(),
+  badge text not null check (char_length(badge) between 1 and 20),
+  title text not null check (char_length(title) between 1 and 160),
+  content text not null check (char_length(content) between 1 and 5000),
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists "ARIMORI_news_updated_at" on public."ARIMORI_news";
+create trigger "ARIMORI_news_updated_at"
+before update on public."ARIMORI_news"
+for each row execute function public."ARIMORI_set_updated_at"();
+
+create index if not exists "ARIMORI_news_created_at_idx"
+  on public."ARIMORI_news" (created_at desc);
+
+alter table public."ARIMORI_news" enable row level security;
+
+revoke all on table public."ARIMORI_news" from anon, authenticated;
+grant select on table public."ARIMORI_news" to anon, authenticated;
+grant insert, update, delete on table public."ARIMORI_news" to authenticated;
+
+drop policy if exists "ARIMORI_public_read_news" on public."ARIMORI_news";
+create policy "ARIMORI_public_read_news"
+on public."ARIMORI_news"
+for select to anon, authenticated
+using (true);
+
+drop policy if exists "ARIMORI_admin_insert_news" on public."ARIMORI_news";
+create policy "ARIMORI_admin_insert_news"
+on public."ARIMORI_news"
+for insert to authenticated
+with check ((select public."ARIMORI_is_admin"()) and created_by = (select auth.uid()));
+
+drop policy if exists "ARIMORI_admin_update_news" on public."ARIMORI_news";
+create policy "ARIMORI_admin_update_news"
+on public."ARIMORI_news"
+for update to authenticated
+using ((select public."ARIMORI_is_admin"()))
+with check ((select public."ARIMORI_is_admin"()));
+
+drop policy if exists "ARIMORI_admin_delete_news" on public."ARIMORI_news";
+create policy "ARIMORI_admin_delete_news"
+on public."ARIMORI_news"
+for delete to authenticated
+using ((select public."ARIMORI_is_admin"()));
+```
+
 ### 소개 페이지 대표 사진 설정
 
 관리자에서 소개 사진을 등록하기 전에 아래 SQL 블록 전체를 한 번 실행한다.

@@ -94,7 +94,7 @@ export default async function AboutPage() {
   const aboutImageUrl = getSiteImageUrl(await getAboutImagePath());
 
   return (
-    <>
+    <div className="page-pattern page-pattern--about">
       <PageHeader eyebrow="ABOUT ARIMORI" title="아리모리앙상블" />
       <div className="page-wrap">
         <section className="about-introduction">
@@ -157,14 +157,6 @@ export default async function AboutPage() {
               </article>
             ))}
           </div>
-          <div className="about-continuing">
-            <strong>2024—2026</strong>
-            <p>
-              강남구 행복콘서트, 서초구 정오의 클래식 디저트와 경기아트센터
-              기회소득예술인페스티벌에 연속 선정되어 꾸준히 관객을 만나고
-              있습니다.
-            </p>
-          </div>
         </section>
 
         <section className="about-section" aria-labelledby="about-stage-title">
@@ -188,6 +180,6 @@ export default async function AboutPage() {
           </div>
         </section>
       </div>
-    </>
+    </div>
   );
 }

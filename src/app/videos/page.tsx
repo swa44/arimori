@@ -10,11 +10,11 @@ export default async function VideosPage() {
   const videos = await getPublicVideos();
 
   return (
-    <>
+    <div className="page-pattern page-pattern--videos">
       <PageHeader eyebrow="PERFORMANCE FILM" title="공연 영상" description="무대 위의 흥과 따뜻한 순간을 영상으로 다시 만나보세요." />
       <div className="page-wrap">
         <VideoGallery videos={videos} />
       </div>
-    </>
+    </div>
   );
 }

@@ -21,7 +21,7 @@ export const metadata = { title: "공연 문의" };
 
 export default function ContactPage() {
   return (
-    <>
+    <div className="page-pattern page-pattern--contact">
       <PageHeader
         eyebrow="CONTACT"
         title="공연 문의"
@@ -51,6 +51,6 @@ export default function ContactPage() {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }
