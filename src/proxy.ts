@@ -23,7 +23,9 @@ export async function proxy(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === "/admin/login";
 
   if (!user && !isLoginPage) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    const url = new URL("/admin/login", request.url);
+    url.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(url);
   }
 
   if (user) {

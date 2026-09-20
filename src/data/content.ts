@@ -1,3 +1,5 @@
+export type BookingType = "reservation" | "free" | "onsite";
+
 export type Schedule = {
   id: string;
   title: string;
@@ -10,7 +12,11 @@ export type Schedule = {
   tone: "olive" | "teal" | "brown";
   posterPath?: string | null;
   posterUrl?: string | null;
+  posterPaths?: string[];
+  posterUrls?: string[];
+  mapQuery?: string | null;
   mapUrl?: string | null;
+  bookingType?: BookingType;
   bookingUrl?: string | null;
   isCancelled?: boolean;
   isFeatured?: boolean;

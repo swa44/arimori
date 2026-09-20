@@ -1,5 +1,5 @@
 import { createClient as createPublicClient } from "@supabase/supabase-js";
-import type { Schedule } from "@/data/content";
+import type { BookingType, Schedule } from "@/data/content";
 import { schedules as mockSchedules } from "@/data/content";
 import { isSupabaseConfigured, requireSupabaseConfig } from "./config";
 
@@ -12,7 +12,10 @@ export type ScheduleRow = {
   address: string | null;
   description: string | null;
   poster_path: string | null;
+  poster_paths: string[] | null;
+  map_query: string | null;
   map_url: string | null;
+  booking_type: BookingType | null;
   booking_url: string | null;
   category: string;
   is_public: boolean;
@@ -39,6 +42,8 @@ const koreaTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
 
 export function rowToSchedule(row: ScheduleRow): Schedule {
   const start = new Date(row.start_at);
+  const posterPaths = row.poster_paths?.length ? row.poster_paths : row.poster_path ? [row.poster_path] : [];
+  const posterUrls = posterPaths.map(getPosterUrl).filter((url): url is string => Boolean(url));
   return {
     id: row.id,
     title: row.title,
@@ -50,8 +55,12 @@ export function rowToSchedule(row: ScheduleRow): Schedule {
     category: row.category,
     tone: row.is_cancelled ? "brown" : row.is_featured ? "olive" : "teal",
     posterPath: row.poster_path,
-    posterUrl: getPosterUrl(row.poster_path),
+    posterUrl: posterUrls[0] ?? null,
+    posterPaths,
+    posterUrls,
+    mapQuery: row.map_query ?? row.location,
     mapUrl: row.map_url,
+    bookingType: row.booking_type ?? (row.booking_url ? "reservation" : "free"),
     bookingUrl: row.booking_url,
     isCancelled: row.is_cancelled,
     isFeatured: row.is_featured,

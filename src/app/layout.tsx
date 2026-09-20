@@ -1,7 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { Noto_Serif_KR } from "next/font/google";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import "./globals.css";
+
+const notoSerifKr = Noto_Serif_KR({
+  variable: "--font-arimori-serif",
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  preload: false,
+});
 
 export const metadata: Metadata = {
   title: { default: "아리모리", template: "%s | 아리모리" },
@@ -29,7 +37,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body>
+      <body className={notoSerifKr.variable}>
         <div className="site-shell">
           <main>{children}</main>
           <PwaInstallPrompt />
