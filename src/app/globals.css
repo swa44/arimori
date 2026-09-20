@@ -353,8 +353,15 @@ main {
   padding: 0 12px calc(8px + env(safe-area-inset-bottom));
   position: fixed;
   transform: translateX(-50%);
+  transition: opacity 160ms ease, transform 160ms ease;
   width: 100%;
   z-index: 1000;
+}
+
+body:has(.sheet-backdrop, .video-modal-backdrop, .news-modal-backdrop, .map-modal-backdrop) .bottom-nav {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(18px);
 }
 
 .bottom-nav__inner {
