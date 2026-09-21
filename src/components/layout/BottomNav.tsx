@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { CalendarDays, Home, Mail, PlayCircle, Users } from "lucide-react";
 
 const tabs = [
@@ -14,6 +15,17 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    const resetPending = window.setTimeout(() => setPendingHref(null), 0);
+    return () => window.clearTimeout(resetPending);
+  }, [pathname]);
+
+  useEffect(() => {
+    tabs.forEach(({ href }) => router.prefetch(href));
+  }, [router]);
 
   if (pathname.startsWith("/admin")) return null;
 
@@ -21,7 +33,8 @@ export function BottomNav() {
     <nav className="bottom-nav" aria-label="주요 메뉴">
       <div className="bottom-nav__inner">
         {tabs.map(({ href, label, icon: Icon, color }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const currentPath = pendingHref ?? pathname;
+          const active = href === "/" ? currentPath === "/" : currentPath.startsWith(href);
 
           return (
             <Link
@@ -29,6 +42,9 @@ export function BottomNav() {
               href={href}
               className={`bottom-nav__item tone-${color} ${active ? "is-active" : ""}`}
               aria-current={active ? "page" : undefined}
+              aria-busy={pendingHref === href && pathname !== href}
+              onPointerDown={() => setPendingHref(href)}
+              onPointerCancel={() => setPendingHref(null)}
             >
               <span className="bottom-nav__icon">
                 <Icon size={21} strokeWidth={active ? 2.5 : 1.8} aria-hidden="true" />

@@ -21,6 +21,8 @@
 
 html {
   background: #ddd6c8;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -29,6 +31,8 @@ body {
   margin: 0 auto;
   max-width: 600px;
   min-height: 100vh;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   background:
     radial-gradient(circle at 8% 4%, rgba(136, 144, 80, 0.08), transparent 28%),
     var(--paper);
@@ -36,6 +40,13 @@ body {
   font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
   letter-spacing: -0.025em;
   box-shadow: 0 0 60px rgba(72, 64, 49, 0.09);
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
 }
 
 button,
@@ -398,9 +409,14 @@ body:has(
   justify-content: center;
   min-height: 58px;
   position: relative;
+  touch-action: manipulation;
   transition:
     color 180ms ease,
     transform 180ms ease;
+}
+
+.bottom-nav__item:active {
+  transform: scale(0.96);
 }
 
 .bottom-nav__icon {
