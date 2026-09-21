@@ -475,6 +475,49 @@ using (
   bucket_id = 'ARIMORI_site_images'
   and (select public."ARIMORI_is_admin"())
 );
+
+-- 소개 페이지 '아리모리가 만드는 무대' 다중 사진
+create table if not exists public."ARIMORI_about_stage_images" (
+  id uuid primary key default gen_random_uuid(),
+  stage_key text not null check (stage_key in ('planning', 'touring', 'education', 'welfare', 'creation')),
+  image_path text not null unique,
+  display_order integer not null default 0,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists "ARIMORI_about_stage_images_order_idx"
+  on public."ARIMORI_about_stage_images" (stage_key, display_order, created_at);
+
+alter table public."ARIMORI_about_stage_images" enable row level security;
+revoke all on table public."ARIMORI_about_stage_images" from anon, authenticated;
+grant select on table public."ARIMORI_about_stage_images" to anon, authenticated;
+grant insert, update, delete on table public."ARIMORI_about_stage_images" to authenticated;
+
+drop policy if exists "ARIMORI_public_read_about_stage_images" on public."ARIMORI_about_stage_images";
+create policy "ARIMORI_public_read_about_stage_images"
+on public."ARIMORI_about_stage_images"
+for select to anon, authenticated
+using (true);
+
+drop policy if exists "ARIMORI_admin_insert_about_stage_images" on public."ARIMORI_about_stage_images";
+create policy "ARIMORI_admin_insert_about_stage_images"
+on public."ARIMORI_about_stage_images"
+for insert to authenticated
+with check ((select public."ARIMORI_is_admin"()) and created_by = (select auth.uid()));
+
+drop policy if exists "ARIMORI_admin_update_about_stage_images" on public."ARIMORI_about_stage_images";
+create policy "ARIMORI_admin_update_about_stage_images"
+on public."ARIMORI_about_stage_images"
+for update to authenticated
+using ((select public."ARIMORI_is_admin"()))
+with check ((select public."ARIMORI_is_admin"()));
+
+drop policy if exists "ARIMORI_admin_delete_about_stage_images" on public."ARIMORI_about_stage_images";
+create policy "ARIMORI_admin_delete_about_stage_images"
+on public."ARIMORI_about_stage_images"
+for delete to authenticated
+using ((select public."ARIMORI_is_admin"()));
 ```
 
 ### 기존 일정 테이블에 길찾기 검색 문구 추가

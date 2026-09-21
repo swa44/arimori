@@ -1,5 +1,6 @@
 import { createClient as createPublicClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured, requireSupabaseConfig } from "./config";
+import type { AboutStageImage } from "@/data/about-stages";
 
 export const defaultHomeHero = {
   kicker: "TRADITION, CLOSE TO YOU",
@@ -11,6 +12,15 @@ export function getSiteImageUrl(path: string | null | undefined) {
   if (!path || !isSupabaseConfigured()) return null;
   const { supabaseUrl } = requireSupabaseConfig();
   return `${supabaseUrl}/storage/v1/object/public/ARIMORI_site_images/${path.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+export async function getAboutStageImages() {
+  if (!isSupabaseConfigured()) return [] as AboutStageImage[];
+  const { supabaseUrl, supabasePublishableKey } = requireSupabaseConfig();
+  const supabase = createPublicClient(supabaseUrl, supabasePublishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await supabase.from("ARIMORI_about_stage_images").select("*").order("stage_key").order("display_order").order("created_at");
+  if (error) return [];
+  return (data ?? []) as AboutStageImage[];
 }
 
 export async function getAboutImagePath() {

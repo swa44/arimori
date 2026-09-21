@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { aboutStages, type AboutStageKey } from "@/data/about-stages";
 
 export type AdminActionState = {
   error: string | null;
@@ -551,4 +552,69 @@ export async function deleteAboutImage(_state: AdminActionState, formData: FormD
   revalidatePath("/about");
   revalidatePath("/admin");
   return { error: null, success: "소개 사진을 삭제했습니다." };
+}
+
+function aboutStageKey(value: FormDataEntryValue | null): AboutStageKey | null {
+  const key = String(value ?? "");
+  return aboutStages.some((stage) => stage.key === key) ? key as AboutStageKey : null;
+}
+
+export async function uploadAboutStageImages(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase, user } = await requireAdmin();
+  const stageKey = aboutStageKey(formData.get("stage_key"));
+  const files = formData.getAll("stage_images").filter((item): item is File => item instanceof File && item.size > 0);
+  if (!stageKey) return { error: "무대 종류를 확인할 수 없습니다." };
+  if (!files.length) return { error: "등록할 사진을 선택해 주세요." };
+  if (files.length > 10) return { error: "사진은 한 번에 최대 10장까지 등록할 수 있습니다." };
+  for (const file of files) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return { error: "JPG, PNG, WEBP 이미지 파일만 등록할 수 있습니다." };
+    if (file.size > 10 * 1024 * 1024) return { error: "사진은 장당 10MB 이하로 등록해 주세요." };
+  }
+  const { count } = await supabase.from("ARIMORI_about_stage_images").select("id", { count: "exact", head: true }).eq("stage_key", stageKey);
+  if ((count ?? 0) + files.length > 20) return { error: "무대별 사진은 최대 20장까지 등록할 수 있습니다." };
+
+  const uploaded: string[] = [];
+  try {
+    for (const file of files) {
+      const path = `about-stages/${stageKey}/${user.id}/${safeFileName(file.name)}`;
+      const { error: uploadError } = await supabase.storage.from("ARIMORI_site_images").upload(path, file, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`);
+      uploaded.push(path);
+    }
+    const rows = uploaded.map((imagePath, index) => ({ stage_key: stageKey, image_path: imagePath, display_order: (count ?? 0) + index, created_by: user.id }));
+    const { error } = await supabase.from("ARIMORI_about_stage_images").insert(rows);
+    if (error) throw new Error(`사진 정보 저장 실패: ${error.message}`);
+  } catch (error) {
+    if (uploaded.length) await supabase.storage.from("ARIMORI_site_images").remove(uploaded);
+    return actionError(error);
+  }
+  revalidatePath("/about"); revalidatePath("/admin");
+  return { error: null, success: `${files.length}장의 사진을 등록했습니다.` };
+}
+
+export async function reorderAboutStageImages(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const stageKey = aboutStageKey(formData.get("stage_key"));
+  const ids = parseStringArray(formData.get("image_order"));
+  if (!stageKey || !ids.length) return { error: "저장할 사진 순서를 확인할 수 없습니다." };
+  const { data } = await supabase.from("ARIMORI_about_stage_images").select("id").eq("stage_key", stageKey).in("id", ids);
+  if ((data ?? []).length !== ids.length) return { error: "사진 순서 정보가 올바르지 않습니다." };
+  for (const [displayOrder, id] of ids.entries()) {
+    const { error } = await supabase.from("ARIMORI_about_stage_images").update({ display_order: displayOrder }).eq("id", id).eq("stage_key", stageKey);
+    if (error) return actionError(error);
+  }
+  revalidatePath("/about"); revalidatePath("/admin");
+  return { error: null, success: "사진 순서를 저장했습니다." };
+}
+
+export async function deleteAboutStageImage(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const { data, error: readError } = await supabase.from("ARIMORI_about_stage_images").select("image_path").eq("id", id).maybeSingle();
+  if (readError || !data) return { error: "삭제할 사진을 찾을 수 없습니다." };
+  const { error } = await supabase.from("ARIMORI_about_stage_images").delete().eq("id", id);
+  if (error) return actionError(error);
+  await supabase.storage.from("ARIMORI_site_images").remove([data.image_path]);
+  revalidatePath("/about"); revalidatePath("/admin");
+  return { error: null, success: "사진을 삭제했습니다." };
 }

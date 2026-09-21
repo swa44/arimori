@@ -9,34 +9,41 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   getAboutImagePath,
+  getAboutStageImages,
   getSiteImageUrl,
 } from "@/lib/supabase/site-settings";
+import { StagePhotoGallery } from "@/components/about/StagePhotoGallery";
 
 export const metadata = { title: "소개" };
 export const dynamic = "force-dynamic";
 
 const performances = [
   {
+    key: "planning",
     icon: Theater,
     title: "기획·초청 공연",
     text: "자체 정기공연부터 지역 축제와 기관 행사, 기업 공연까지 공간과 관객에게 꼭 맞는 무대를 함께 만들어갑니다.",
   },
   {
+    key: "touring",
     icon: MapPinned,
     title: "찾아가는 문화예술공연",
     text: "학교와 도서관, 공공기관, 기업, 복지시설 등 관객이 있는 곳이라면 어디든 찾아가 즐거운 공연을 나눕니다.",
   },
   {
+    key: "education",
     icon: BookOpen,
     title: "문화예술교육 프로그램",
     text: "보고 듣는 공연을 넘어 직접 참여하고 경험하며 예술과 한층 가까워지는 시간을 마련합니다.",
   },
   {
+    key: "welfare",
     icon: HeartHandshake,
     title: "문화복지 프로그램",
     text: "문화예술을 만나기 어려웠던 이웃의 일상에도 따뜻한 음악과 즐거운 무대가 닿을 수 있도록 찾아갑니다.",
   },
   {
+    key: "creation",
     icon: Disc3,
     title: "창작·앨범 제작 활동",
     text: "아리모리만의 색과 이야기를 담은 음악을 만들고, 음원과 앨범으로 오래도록 나눕니다.",
@@ -91,7 +98,8 @@ const history = [
 ];
 
 export default async function AboutPage() {
-  const aboutImageUrl = getSiteImageUrl(await getAboutImagePath());
+  const [aboutImagePath, stageImages] = await Promise.all([getAboutImagePath(), getAboutStageImages()]);
+  const aboutImageUrl = getSiteImageUrl(aboutImagePath);
 
   return (
     <div className="page-pattern page-pattern--about">
@@ -117,6 +125,28 @@ export default async function AboutPage() {
               앙상블은, 더 많은 분들의 일상 가까이에서 음악으로 만날 수 있도록
               전국 곳곳의 무대를 찾아가고 있습니다.
             </p>
+          </div>
+        </section>
+
+        <section className="about-section" aria-labelledby="about-stage-title">
+          <div className="section-heading">
+            <h2 className="section-title" id="about-stage-title">
+              아리모리가 만드는 무대
+            </h2>
+          </div>
+          <div className="performance-grid">
+            {performances.map(({ key, icon: Icon, title, text }) => (
+              <article className="performance-card" key={title}>
+                <span className="performance-card__icon">
+                  <Icon size={23} />
+                </span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+                <StagePhotoGallery title={title} images={stageImages.filter((image) => image.stage_key === key).map((image) => ({ id: image.id, url: getSiteImageUrl(image.image_path) ?? "" }))} />
+              </article>
+            ))}
           </div>
         </section>
 
@@ -159,26 +189,6 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        <section className="about-section" aria-labelledby="about-stage-title">
-          <div className="section-heading">
-            <h2 className="section-title" id="about-stage-title">
-              아리모리가 만드는 무대
-            </h2>
-          </div>
-          <div className="performance-grid">
-            {performances.map(({ icon: Icon, title, text }) => (
-              <article className="performance-card" key={title}>
-                <span className="performance-card__icon">
-                  <Icon size={23} />
-                </span>
-                <div>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   );

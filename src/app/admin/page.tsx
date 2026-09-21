@@ -7,6 +7,7 @@ import { DeleteInquiryButton } from "@/components/admin/DeleteInquiryButton";
 import { DeleteNewsButton } from "@/components/admin/DeleteNewsButton";
 import { InquirySettingsForm } from "@/components/admin/InquirySettingsForm";
 import { AboutImageForm } from "@/components/admin/AboutImageForm";
+import { AboutStageImageManager } from "@/components/admin/AboutStageImageManager";
 import { HomeHeroForm } from "@/components/admin/HomeHeroForm";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { createClient } from "@/lib/supabase/server";
@@ -14,6 +15,7 @@ import type { ScheduleRow } from "@/lib/supabase/schedules";
 import type { VideoRow } from "@/lib/supabase/videos";
 import type { NewsRow } from "@/lib/supabase/news";
 import { defaultHomeHero, getSiteImageUrl } from "@/lib/supabase/site-settings";
+import type { AboutStageImage } from "@/data/about-stages";
 import type { ReviewCampaign, StampProgram } from "@/lib/supabase/events";
 
 export const metadata = { title: "관리자" };
@@ -56,6 +58,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   let inquiryCount = 0;
   let notificationPhone = "";
   let aboutImagePath: string | null = null;
+  let aboutStageImages: AboutStageImage[] = [];
   let homeHero = defaultHomeHero;
   let stampPrograms: StampProgram[] = [];
   let reviewCampaigns: Array<ReviewCampaign & { ARIMORI_schedules: { title: string } | null }> = [];
@@ -104,8 +107,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       subtitle: data?.home_hero_subtitle?.trim() || defaultHomeHero.subtitle,
     };
   } else {
-    const { data } = await supabase.from("ARIMORI_site_settings").select("about_image_path").eq("id", true).maybeSingle();
-    aboutImagePath = data?.about_image_path ?? null;
+    const [{ data: settings }, { data: stageImages }] = await Promise.all([
+      supabase.from("ARIMORI_site_settings").select("about_image_path").eq("id", true).maybeSingle(),
+      supabase.from("ARIMORI_about_stage_images").select("*").order("stage_key").order("display_order").order("created_at"),
+    ]);
+    aboutImagePath = settings?.about_image_path ?? null;
+    aboutStageImages = (stageImages ?? []) as AboutStageImage[];
   }
   const totalPages = Math.max(1, Math.ceil((activeTab === "inquiries" ? inquiryCount : scheduleCount) / pageSize));
   const activeGroup = activeTab === "events" ? "events" : activeTab === "inquiries" || activeTab === "home" ? "etc" : "manage";
@@ -181,8 +188,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </>}
 
       {activeTab === "about" && <>
-        <div className="admin-heading"><div><h1>소개 관리</h1><p>소개 페이지 상단에 표시할 대표 사진을 관리합니다.</p></div></div>
+        <div className="admin-heading"><div><h1>소개 관리</h1><p>대표 사진과 무대별 갤러리를 관리합니다.</p></div></div>
         <AboutImageForm imagePath={aboutImagePath} imageUrl={getSiteImageUrl(aboutImagePath)} />
+        <AboutStageImageManager images={aboutStageImages.map((image) => ({ ...image, url: getSiteImageUrl(image.image_path) ?? "" }))} />
       </>}
 
       {activeTab === "home" && <>
