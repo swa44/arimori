@@ -222,7 +222,98 @@ useEffect(() => {
 - 내부 스크롤 컨테이너로 변경한 뒤에는 하단 고정 내비게이션, 전체 화면 모달, iOS 안전 영역을 함께 확인한다.
 - 설치된 PWA가 이전 CSS를 캐시했다면 앱을 완전히 종료한 뒤 다시 실행하거나 새로고침해서 확인한다.
 
-## 9. 재사용 체크리스트
+## 9. 하단 내비게이션 이동 반응과 로딩 화면
+
+서버 컴포넌트에서 Supabase 데이터를 불러오는 동적 페이지는 링크를 누른 후 새 화면이 준비될 때까지 짧은 대기 시간이 생길 수 있다. 이때 이전 화면을 그대로 둔 채 내비게이션의 활성 상태만 먼저 바꾸면 화면과 메뉴가 서로 다른 페이지를 가리키는 것처럼 보인다.
+
+특히 모바일에서 `onPointerDown`으로 활성 상태를 바꾸면 손가락을 떼지 않고 길게 누르는 동안 다음 문제가 발생한다.
+
+1. `pointerdown`은 발생해 내비게이션 표시가 먼저 바뀐다.
+2. 실제 링크 클릭과 페이지 이동은 손가락을 뗀 뒤에 발생한다.
+3. 사용자가 계속 누르고 있으면 이전 화면과 다음 메뉴 활성 상태가 동시에 보인다.
+
+따라서 내비게이션 이동 상태는 `onPointerDown`이 아니라 Next.js `Link`의 실제 클라이언트 이동이 확정되는 `onNavigate`에서 시작한다.
+
+```tsx
+<Link
+  href={href}
+  onNavigate={() => {
+    if (!isCurrentPath(href)) setPendingHref(href);
+  }}
+>
+  {label}
+</Link>
+```
+
+이동이 시작되면 기존 페이지를 계속 보여주는 대신 콘텐츠 영역을 즉시 로딩 화면으로 덮는다. 하단 내비게이션은 로딩 화면보다 높은 `z-index`를 사용해 현재 이동 대상을 계속 보여준다.
+
+```tsx
+{pendingHref && !isCurrentPath(pendingHref) ? (
+  <div className="route-loading-overlay" role="status" aria-live="polite">
+    <span className="route-loading-spinner" aria-hidden="true" />
+    <span className="sr-only">페이지를 불러오는 중입니다.</span>
+  </div>
+) : null}
+```
+
+```css
+.route-loading-overlay {
+  align-items: center;
+  background: var(--paper);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 900;
+}
+
+.route-loading-spinner {
+  animation: route-loading-spin 700ms linear infinite;
+  border: 3px solid rgba(88, 141, 148, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--brand-teal);
+  height: 30px;
+  width: 30px;
+}
+
+@keyframes route-loading-spin {
+  to { transform: rotate(360deg); }
+}
+```
+
+페이지 경로가 바뀌면 대기 상태를 해제한다. 네트워크 오류 등으로 경로가 바뀌지 않는 경우 화면이 계속 가려지지 않도록 안전 해제 시간도 함께 둔다.
+
+```tsx
+useEffect(() => {
+  const resetPending = window.setTimeout(() => setPendingHref(null), 0);
+  return () => window.clearTimeout(resetPending);
+}, [pathname]);
+
+useEffect(() => {
+  if (!pendingHref) return;
+  const safetyReset = window.setTimeout(() => setPendingHref(null), 10000);
+  return () => window.clearTimeout(safetyReset);
+}, [pendingHref]);
+```
+
+추가로 주요 메뉴를 미리 불러오면 실제 대기 시간도 줄일 수 있다.
+
+```tsx
+useEffect(() => {
+  tabs.forEach(({ href }) => router.prefetch(href));
+}, [router]);
+```
+
+핵심 원칙:
+
+- 터치가 시작된 시점과 실제 이동이 확정된 시점을 구분한다.
+- 길게 누르기만 했을 때는 활성 메뉴와 화면을 바꾸지 않는다.
+- 이동이 확정되면 이전 화면을 즉시 가리고 로딩 상태를 명확히 보여준다.
+- 현재 페이지를 다시 누른 경우에는 로딩 화면을 띄우지 않는다.
+- 데이터 요청 시간을 숨기기만 하지 말고 `prefetch`를 사용해 실제 이동 시간도 줄인다.
+- 비정상적으로 이동이 오래 걸릴 경우를 대비해 로딩 상태의 안전 해제를 둔다.
+
+## 10. 재사용 체크리스트
 
 1. Manifest 경로와 앱 이름을 새 프로젝트에 맞게 변경한다.
 2. 180px, 192px, 512px 아이콘을 교체한다.
@@ -235,3 +326,4 @@ useEffect(() => {
 9. 스크롤바를 숨길 때 `overflow: auto`는 유지한다.
 10. Android Chrome, Samsung Internet, iOS Safari, 설치된 PWA 모드에서 각각 확인한다.
 11. Samsung Internet PWA에서 네이티브 스크롤 표시기가 남으면 문서 대신 앱 컨테이너를 스크롤하도록 구성한다.
+12. 모바일 하단 메뉴는 `onPointerDown`으로 이동 상태를 시작하지 않고 실제 탐색이 확정된 뒤 로딩 상태를 표시한다.
