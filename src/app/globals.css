@@ -21,17 +21,21 @@
 
 html {
   background: #ddd6c8;
+  height: 100%;
   -ms-overflow-style: none;
+  overflow: hidden;
   scrollbar-width: none;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
 body {
+  height: 100%;
   margin: 0 auto;
   max-width: 600px;
-  min-height: 100vh;
+  min-height: 0;
   -ms-overflow-style: none;
+  overflow: hidden;
   scrollbar-width: none;
   background:
     radial-gradient(circle at 8% 4%, rgba(136, 144, 80, 0.08), transparent 28%),
@@ -71,9 +75,21 @@ img {
 }
 
 .site-shell {
-  min-height: 100vh;
-  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  -ms-overflow-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.site-shell::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
 }
 
 main {

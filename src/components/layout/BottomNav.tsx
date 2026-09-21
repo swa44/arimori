@@ -24,6 +24,14 @@ export function BottomNav() {
   }, [pathname]);
 
   useEffect(() => {
+    document.querySelector<HTMLElement>(".site-shell")?.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    });
+  }, [pathname]);
+
+  useEffect(() => {
     tabs.forEach(({ href }) => router.prefetch(href));
   }, [router]);
 
