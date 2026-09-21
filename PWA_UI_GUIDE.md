@@ -166,6 +166,62 @@ useEffect(() => {
 }, [modalOpen]);
 ```
 
+### Samsung Internet PWA의 오른쪽 스크롤 위치 표시기
+
+갤럭시에서 Samsung Internet으로 설치한 PWA는 `html` 또는 `body`가 문서 스크롤을 담당하면 `::-webkit-scrollbar`를 숨겨도 화면 오른쪽에 네이티브 스크롤 위치 표시기를 별도로 표시할 수 있다. 이 경우에는 최상위 문서의 스크롤을 막고, 앱 컨테이너가 스크롤을 담당하도록 구조를 바꾼다.
+
+아리모리에서는 `.site-shell`을 앱 스크롤 컨테이너로 사용한다.
+
+```css
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.site-shell {
+  height: 100vh;  /* 100dvh 미지원 브라우저용 */
+  height: 100dvh;
+  min-height: 0;
+  -ms-overflow-style: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.site-shell::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+```
+
+이 구조에서는 `window`가 아니라 `.site-shell`이 스크롤되므로 페이지가 바뀔 때 스크롤 위치도 직접 초기화해야 한다.
+
+```tsx
+useEffect(() => {
+  document.querySelector<HTMLElement>(".site-shell")?.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "auto",
+  });
+}, [pathname]);
+```
+
+주의사항:
+
+- `html`, `body`에만 스크롤바 숨김 CSS를 추가하는 것으로는 Samsung Internet PWA의 네이티브 표시기가 남을 수 있다.
+- 실제 스크롤은 `.site-shell`의 `overflow-y: auto`로 유지한다.
+- `100vh`를 먼저 쓰고 `100dvh`를 뒤에 두어 구형 브라우저와 동적 모바일 화면 높이를 함께 대응한다.
+- 내부 스크롤 컨테이너로 변경한 뒤에는 하단 고정 내비게이션, 전체 화면 모달, iOS 안전 영역을 함께 확인한다.
+- 설치된 PWA가 이전 CSS를 캐시했다면 앱을 완전히 종료한 뒤 다시 실행하거나 새로고침해서 확인한다.
+
 ## 9. 재사용 체크리스트
 
 1. Manifest 경로와 앱 이름을 새 프로젝트에 맞게 변경한다.
@@ -178,3 +234,4 @@ useEffect(() => {
 8. 이미 standalone으로 실행 중이면 설치 안내를 숨긴다.
 9. 스크롤바를 숨길 때 `overflow: auto`는 유지한다.
 10. Android Chrome, Samsung Internet, iOS Safari, 설치된 PWA 모드에서 각각 확인한다.
+11. Samsung Internet PWA에서 네이티브 스크롤 표시기가 남으면 문서 대신 앱 컨테이너를 스크롤하도록 구성한다.

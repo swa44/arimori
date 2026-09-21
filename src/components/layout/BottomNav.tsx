@@ -24,6 +24,12 @@ export function BottomNav() {
   }, [pathname]);
 
   useEffect(() => {
+    if (!pendingHref) return;
+    const safetyReset = window.setTimeout(() => setPendingHref(null), 10000);
+    return () => window.clearTimeout(safetyReset);
+  }, [pendingHref]);
+
+  useEffect(() => {
     document.querySelector<HTMLElement>(".site-shell")?.scrollTo({
       top: 0,
       left: 0,
@@ -37,31 +43,44 @@ export function BottomNav() {
 
   if (pathname.startsWith("/admin")) return null;
 
-  return (
-    <nav className="bottom-nav" aria-label="주요 메뉴">
-      <div className="bottom-nav__inner">
-        {tabs.map(({ href, label, icon: Icon, color }) => {
-          const currentPath = pendingHref ?? pathname;
-          const active = href === "/" ? currentPath === "/" : currentPath.startsWith(href);
+  const isCurrentPath = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`bottom-nav__item tone-${color} ${active ? "is-active" : ""}`}
-              aria-current={active ? "page" : undefined}
-              aria-busy={pendingHref === href && pathname !== href}
-              onPointerDown={() => setPendingHref(href)}
-              onPointerCancel={() => setPendingHref(null)}
-            >
-              <span className="bottom-nav__icon">
-                <Icon size={21} strokeWidth={active ? 2.5 : 1.8} aria-hidden="true" />
-              </span>
-              <span>{label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+  return (
+    <>
+      {pendingHref && !isCurrentPath(pendingHref) ? (
+        <div className="route-loading-overlay" role="status" aria-live="polite">
+          <span className="route-loading-spinner" aria-hidden="true" />
+          <span className="sr-only">페이지를 불러오는 중입니다.</span>
+        </div>
+      ) : null}
+
+      <nav className="bottom-nav" aria-label="주요 메뉴">
+        <div className="bottom-nav__inner">
+          {tabs.map(({ href, label, icon: Icon, color }) => {
+            const currentPath = pendingHref ?? pathname;
+            const active = href === "/" ? currentPath === "/" : currentPath.startsWith(href);
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`bottom-nav__item tone-${color} ${active ? "is-active" : ""}`}
+                aria-current={active ? "page" : undefined}
+                aria-busy={pendingHref === href && !isCurrentPath(href)}
+                onNavigate={() => {
+                  if (!isCurrentPath(href)) setPendingHref(href);
+                }}
+              >
+                <span className="bottom-nav__icon">
+                  <Icon size={21} strokeWidth={active ? 2.5 : 1.8} aria-hidden="true" />
+                </span>
+                <span>{label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }

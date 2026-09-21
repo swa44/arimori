@@ -435,6 +435,41 @@ body:has(
   transform: scale(0.96);
 }
 
+.route-loading-overlay {
+  align-items: center;
+  background: var(--paper);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  left: 50%;
+  max-width: 600px;
+  position: fixed;
+  transform: translateX(-50%);
+  width: 100%;
+  z-index: 900;
+}
+
+.route-loading-spinner {
+  animation: route-loading-spin 700ms linear infinite;
+  border: 3px solid rgba(88, 141, 148, 0.2);
+  border-radius: 50%;
+  border-top-color: var(--brand-teal);
+  height: 30px;
+  width: 30px;
+}
+
+@keyframes route-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-spinner {
+    animation-duration: 1400ms;
+  }
+}
+
 .bottom-nav__icon {
   align-items: center;
   border-radius: 12px;
