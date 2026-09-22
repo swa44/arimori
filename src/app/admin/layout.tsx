@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { AdminNavigationFeedback } from "@/components/admin/AdminNavigationFeedback";
 
 export const metadata: Metadata = {
   manifest: "/admin/manifest.webmanifest",
@@ -10,5 +12,12 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return children;
+  return (
+    <>
+      {children}
+      <Suspense fallback={null}>
+        <AdminNavigationFeedback />
+      </Suspense>
+    </>
+  );
 }

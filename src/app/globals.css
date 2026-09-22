@@ -449,6 +449,16 @@ body:has(
   z-index: 900;
 }
 
+.admin-route-loading-overlay {
+  align-items: center;
+  background: #f1efe9;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 5000;
+}
+
 .route-loading-spinner {
   animation: route-loading-spin 700ms linear infinite;
   border: 3px solid rgba(88, 141, 148, 0.2);
