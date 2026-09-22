@@ -333,7 +333,7 @@ Vercel 프로젝트의 `Settings → Domains`에 `admin.ari-mori.com`을 추가�
 관리자 PWA 설정 파일:
 
 - 관리자 레이아웃 및 Manifest 연결: `src/app/admin/layout.tsx`
-- 관리자 Manifest: `src/app/admin/manifest.ts`
+- 관리자 Manifest 응답: `src/app/admin/manifest.webmanifest/route.ts`
 - 공통 설치 안내: `src/components/pwa/PwaInstallPrompt.tsx`
 - Service Worker: `public/sw.js`
 
@@ -348,6 +348,8 @@ Vercel 프로젝트의 `Settings → Domains`에 `admin.ari-mori.com`을 추가�
   display: "standalone",
 }
 ```
+
+Next.js에서 관리자처럼 중첩된 경로의 별도 Manifest를 사용할 때는 `src/app/admin/manifest.ts` 파일만 두지 않는다. 실제 배포 환경에서 `/admin/manifest.webmanifest`가 404가 될 수 있으므로 `src/app/admin/manifest.webmanifest/route.ts`에서 `Content-Type: application/manifest+json` 응답을 명시적으로 제공한다. 로그인 페이지 HTML의 Manifest 링크와 실제 응답 주소가 모두 `/admin/manifest.webmanifest`인지 확인한다.
 
 일반 앱과 관리자 앱은 서로 다른 origin이므로 Android에서 각각 별도의 설치 가능 여부, 브라우저 저장소, PWA 앱 ID를 사용한다. 관리자 앱 설치 테스트는 기존 일반 앱 내부가 아니라 Chrome 또는 Samsung Internet 주소창에서 `https://admin.ari-mori.com/admin/login`을 직접 열어 진행한다.
 
