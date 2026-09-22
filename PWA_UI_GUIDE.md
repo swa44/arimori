@@ -320,12 +320,14 @@ useEffect(() => {
 - 일반 앱: `https://ari-mori.com`
 - 관리자 앱: `https://admin.ari-mori.com/admin`
 - 관리자 로그인: `https://admin.ari-mori.com/admin/login`
+- 한글 관리자 별칭: `https://admin.아리모리.com` (`admin.xn--oy2ba96em42a.com`)
 
 Vercel 프로젝트의 `Settings → Domains`에 `admin.ari-mori.com`을 추가하고, Vercel이 안내하는 CNAME 레코드를 DNS에 등록한다. 연결 상태가 `Valid Configuration`이 되면 별도 프로젝트나 별도 배포 없이 같은 코드가 두 도메인에서 동작한다.
 
 라우팅은 `src/proxy.ts`에서 처리한다.
 
 - `admin.ari-mori.com`의 루트(`/`)는 `/admin`으로 이동한다.
+- `admin.아리모리.com`의 루트(`/`)도 퓨니코드 호스트를 인식해 `/admin`으로 이동한다.
 - 일반 도메인의 `/admin` 경로는 같은 경로를 유지한 채 `admin.ari-mori.com`으로 이동한다.
 - localhost와 `192.168.x.x` 개발 주소에서는 기존 `/admin` 접근을 그대로 허용한다.
 - `/admin/manifest.webmanifest`는 로그인하지 않은 상태에서도 반드시 읽을 수 있어야 한다. 이 경로를 인증으로 막으면 로그인 화면에서 Android의 `beforeinstallprompt`가 발생하지 않는다.
@@ -365,6 +367,8 @@ Next.js에서 관리자처럼 중첩된 경로의 별도 Manifest를 사용할 �
 6. 안내를 닫은 기록이 남아 있으면 해당 브라우저 탭을 완전히 닫거나 사이트 데이터를 초기화한 뒤 다시 확인한다.
 
 다음에 관리자 PWA 설치 방법을 안내할 때는 이 절의 도메인, 매니페스트 공개 예외, 재설치 순서를 기준으로 설명한다.
+
+한글 도메인은 브라우저와 서버에서 퓨니코드로 전달된다. `admin.아리모리.com`은 코드에서 `admin.xn--oy2ba96em42a.com`으로 비교해야 한다. DNS가 Vercel을 가리키더라도 Vercel Domains 화면에서 도메인 검증과 SSL 인증서 발급이 끝나기 전에는 HTTPS 접속 및 PWA 설치가 동작하지 않는다.
 
 ## 11. 재사용 체크리스트
 

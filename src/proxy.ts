@@ -8,10 +8,11 @@ export async function proxy(request: NextRequest) {
     .split(":")[0]
     .toLowerCase();
   const adminHostname = "admin.ari-mori.com";
+  const adminHostnames = new Set([adminHostname, "admin.xn--oy2ba96em42a.com"]);
   const isPublicHostname = hostname === "ari-mori.com" || hostname === "www.ari-mori.com";
   const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
 
-  if (hostname === adminHostname && pathname === "/") {
+  if (adminHostnames.has(hostname) && pathname === "/") {
     return NextResponse.redirect(new URL("/admin", request.url), 308);
   }
 
