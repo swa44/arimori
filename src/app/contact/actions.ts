@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { after } from "next/server";
 import { sendInquiryNotification } from "@/lib/bizgo";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,15 +14,8 @@ function value(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
 }
 
-async function siteOrigin() {
-  const configured = process.env.ARIMORI_SITE_URL?.trim().replace(/\/$/, "");
-  if (configured) return configured;
-
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  if (!host) throw new Error("사이트 주소를 확인할 수 없습니다.");
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  return `${protocol}://${host}`;
+function adminOrigin() {
+  return process.env.ARIMORI_ADMIN_URL?.trim().replace(/\/$/, "") || "https://admin.ari-mori.com";
 }
 
 async function notifyAdmin(inquiryId: string) {
@@ -44,7 +36,7 @@ async function notifyAdmin(inquiryId: string) {
     await sendInquiryNotification({
       inquiryId,
       recipient: settings.notification_phone,
-      detailUrl: `${await siteOrigin()}/admin/inquiry/${inquiryId}`,
+      detailUrl: `${adminOrigin()}/admin/inquiry/${inquiryId}`,
     });
     await admin
       .from("ARIMORI_inquiries")

@@ -3,6 +3,33 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireSupabaseConfig } from "@/lib/supabase/config";
 
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const hostname = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "")
+    .split(":")[0]
+    .toLowerCase();
+  const adminHostname = "admin.ari-mori.com";
+  const isPublicHostname = hostname === "ari-mori.com" || hostname === "www.ari-mori.com";
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  if (hostname === adminHostname && pathname === "/") {
+    return NextResponse.redirect(new URL("/admin", request.url), 308);
+  }
+
+  if (isPublicHostname && isAdminPath) {
+    const url = request.nextUrl.clone();
+    url.hostname = adminHostname;
+    url.port = "";
+    return NextResponse.redirect(url, 308);
+  }
+
+  if (pathname === "/admin/manifest.webmanifest") {
+    return NextResponse.next({ request });
+  }
+
+  if (!isAdminPath) {
+    return NextResponse.next({ request });
+  }
+
   const { supabaseUrl, supabasePublishableKey } = requireSupabaseConfig();
   let response = NextResponse.next({ request });
 
@@ -47,5 +74,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/", "/admin/:path*"],
 };

@@ -313,7 +313,58 @@ useEffect(() => {
 - 데이터 요청 시간을 숨기기만 하지 말고 `prefetch`를 사용해 실제 이동 시간도 줄인다.
 - 비정상적으로 이동이 오래 걸릴 경우를 대비해 로딩 상태의 안전 해제를 둔다.
 
-## 10. 재사용 체크리스트
+## 10. 일반 앱과 관리자 앱을 서로 다른 PWA로 분리
+
+아리모리는 같은 Vercel 프로젝트를 사용하면서 도메인을 다음처럼 분리한다.
+
+- 일반 앱: `https://ari-mori.com`
+- 관리자 앱: `https://admin.ari-mori.com/admin`
+- 관리자 로그인: `https://admin.ari-mori.com/admin/login`
+
+Vercel 프로젝트의 `Settings → Domains`에 `admin.ari-mori.com`을 추가하고, Vercel이 안내하는 CNAME 레코드를 DNS에 등록한다. 연결 상태가 `Valid Configuration`이 되면 별도 프로젝트나 별도 배포 없이 같은 코드가 두 도메인에서 동작한다.
+
+라우팅은 `src/proxy.ts`에서 처리한다.
+
+- `admin.ari-mori.com`의 루트(`/`)는 `/admin`으로 이동한다.
+- 일반 도메인의 `/admin` 경로는 같은 경로를 유지한 채 `admin.ari-mori.com`으로 이동한다.
+- localhost와 `192.168.x.x` 개발 주소에서는 기존 `/admin` 접근을 그대로 허용한다.
+- `/admin/manifest.webmanifest`는 로그인하지 않은 상태에서도 반드시 읽을 수 있어야 한다. 이 경로를 인증으로 막으면 로그인 화면에서 Android의 `beforeinstallprompt`가 발생하지 않는다.
+
+관리자 PWA 설정 파일:
+
+- 관리자 레이아웃 및 Manifest 연결: `src/app/admin/layout.tsx`
+- 관리자 Manifest: `src/app/admin/manifest.ts`
+- 공통 설치 안내: `src/components/pwa/PwaInstallPrompt.tsx`
+- Service Worker: `public/sw.js`
+
+관리자 Manifest의 주요 값은 다음과 같다.
+
+```ts
+{
+  id: "/admin",
+  name: "아리모리 관리",
+  start_url: "/admin",
+  scope: "/admin",
+  display: "standalone",
+}
+```
+
+일반 앱과 관리자 앱은 서로 다른 origin이므로 Android에서 각각 별도의 설치 가능 여부, 브라우저 저장소, PWA 앱 ID를 사용한다. 관리자 앱 설치 테스트는 기존 일반 앱 내부가 아니라 Chrome 또는 Samsung Internet 주소창에서 `https://admin.ari-mori.com/admin/login`을 직접 열어 진행한다.
+
+문의 접수 문자에 포함되는 관리자 상세 링크도 `https://admin.ari-mori.com/admin/inquiry/{id}` 형식을 사용한다. 필요할 경우 배포 환경변수 `ARIMORI_ADMIN_URL`로 관리자 origin을 덮어쓸 수 있으며, 설정하지 않으면 `https://admin.ari-mori.com`을 기본값으로 사용한다.
+
+재설치 테스트 순서:
+
+1. 기존 일반 앱 또는 관리자 앱을 기기에서 삭제한다.
+2. 브라우저의 기존 아리모리 탭을 닫고 브라우저를 다시 실행한다.
+3. 일반 앱은 `https://ari-mori.com`, 관리자 앱은 `https://admin.ari-mori.com/admin/login`을 각각 브라우저 주소창에서 연다.
+4. Android는 설치 안내의 `설치` 버튼으로 PWA 설치를 진행한다.
+5. iOS는 공유 버튼의 `홈 화면에 추가`를 사용한다.
+6. 안내를 닫은 기록이 남아 있으면 해당 브라우저 탭을 완전히 닫거나 사이트 데이터를 초기화한 뒤 다시 확인한다.
+
+다음에 관리자 PWA 설치 방법을 안내할 때는 이 절의 도메인, 매니페스트 공개 예외, 재설치 순서를 기준으로 설명한다.
+
+## 11. 재사용 체크리스트
 
 1. Manifest 경로와 앱 이름을 새 프로젝트에 맞게 변경한다.
 2. 180px, 192px, 512px 아이콘을 교체한다.
