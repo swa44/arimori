@@ -479,7 +479,7 @@ using (
 -- 소개 페이지 '아리모리가 만드는 무대' 다중 사진
 create table if not exists public."ARIMORI_about_stage_images" (
   id uuid primary key default gen_random_uuid(),
-  stage_key text not null check (stage_key in ('planning', 'touring', 'education', 'welfare', 'creation')),
+  stage_key text not null check (stage_key in ('planning', 'invitation', 'touring', 'education', 'welfare', 'creation')),
   image_path text not null unique,
   display_order integer not null default 0,
   created_by uuid references auth.users(id) on delete set null,

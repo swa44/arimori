@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import {
   BookOpen,
+  Building2,
   Disc3,
   HeartHandshake,
   MapPinned,
@@ -21,14 +22,20 @@ const performances = [
   {
     key: "planning",
     icon: Theater,
-    title: "기획·초청 공연",
-    text: "자체 정기공연부터 지역 축제와 기관 행사, 기업 공연까지 공간과 관객에게 꼭 맞는 무대를 함께 만들어갑니다.",
+    title: "기획 공연",
+    text: "자체 기획, 공모사업을 통해 아리모리만의 독창적인 예술 세계와 완성도 높은 레퍼토리를 선보이는 정기·기획 무대입니다.",
+  },
+  {
+    key: "invitation",
+    icon: Building2,
+    title: "초청 공연",
+    text: "지역 축제와 지자체, 공공기관 및 기업 행사의 콘셉트에 맞춰 공간과 관객에게 꼭 맞는 맞춤형 연주를 선사합니다.",
   },
   {
     key: "touring",
     icon: MapPinned,
     title: "찾아가는 문화예술공연",
-    text: "학교와 도서관, 공공기관, 기업, 복지시설 등 관객이 있는 곳이라면 어디든 찾아가 즐거운 공연을 나눕니다.",
+    text: "학교, 도서관, 복지시설 등 관객이 있는 곳이라면 어디든 직접 찾아가 일상 속에서 음악의 즐거움을 나누는 무대입니다.",
   },
   {
     key: "education",
