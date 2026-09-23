@@ -6,6 +6,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { GripVertical, Image as ImageIcon, LoaderCircle, UploadCloud, X } from "lucide-react";
 import type { AdminActionState } from "@/app/admin/actions";
 import type { BookingType } from "@/data/content";
+import { createClientImageId, optimizeImageForWeb } from "@/lib/images/optimize";
 import { getPosterUrl, type ScheduleRow } from "@/lib/supabase/schedules";
 
 const initialState: AdminActionState = { error: null };
@@ -30,6 +31,7 @@ export function ScheduleForm({
   const draggedPosterId = useRef<string | null>(null);
   const objectUrls = useRef<string[]>([]);
   const [isPosterDragging, setIsPosterDragging] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [posterItems, setPosterItems] = useState<PosterItem[]>(() => {
     const paths = schedule?.poster_paths?.length ? schedule.poster_paths : schedule?.poster_path ? [schedule.poster_path] : [];
     return paths.map((path, index) => ({ id: `existing:${index}`, kind: "existing" as const, path, previewUrl: getPosterUrl(path) ?? "" }));
@@ -53,7 +55,7 @@ export function ScheduleForm({
 
   useEffect(() => () => { objectUrls.current.forEach((url) => URL.revokeObjectURL(url)); }, []);
 
-  function addPosterFiles(files: File[]) {
+  async function addPosterFiles(files: File[]) {
     if (!files.length) return;
     if (posterItems.length + files.length > 10) {
       setPosterError("포스터는 최대 10장까지 등록할 수 있습니다.");
@@ -68,12 +70,24 @@ export function ScheduleForm({
       return;
     }
     setPosterError("");
-    const newItems = files.map((file) => {
-      const previewUrl = URL.createObjectURL(file);
-      objectUrls.current.push(previewUrl);
-      return { id: `new:${crypto.randomUUID()}`, kind: "new" as const, file, previewUrl };
-    });
-    setPosterItems((current) => [...current, ...newItems]);
+    setIsOptimizing(true);
+    try {
+      const optimized: File[] = [];
+      for (const file of files) optimized.push(await optimizeImageForWeb(file));
+      const existingUploadSize = posterItems.reduce((total, item) => total + (item.kind === "new" ? item.file.size : 0), 0);
+      const nextUploadSize = optimized.reduce((total, file) => total + file.size, existingUploadSize);
+      if (nextUploadSize > 3.5 * 1024 * 1024) throw new Error("최적화된 포스터 전체 용량이 큽니다. 나누어 등록해 주세요.");
+      const newItems = optimized.map((file) => {
+        const previewUrl = URL.createObjectURL(file);
+        objectUrls.current.push(previewUrl);
+        return { id: `new:${createClientImageId()}`, kind: "new" as const, file, previewUrl };
+      });
+      setPosterItems((current) => [...current, ...newItems]);
+    } catch (error) {
+      setPosterError(error instanceof Error ? error.message : "포스터를 최적화하지 못했습니다.");
+    } finally {
+      setIsOptimizing(false);
+    }
   }
 
   function removePoster(id: string) {
@@ -103,6 +117,10 @@ export function ScheduleForm({
       action={formAction}
       className="schedule-form"
       onSubmit={(event) => {
+        if (isOptimizing) {
+          event.preventDefault();
+          return;
+        }
         if (submittedRef.current) {
           event.preventDefault();
           return;
@@ -180,13 +198,13 @@ export function ScheduleForm({
           onDrop={(event) => {
             event.preventDefault();
             setIsPosterDragging(false);
-            addPosterFiles(Array.from(event.dataTransfer.files));
+            void addPosterFiles(Array.from(event.dataTransfer.files));
           }}
         >
           {posterItems.length ? <ImageIcon size={25} /> : <UploadCloud size={27} />}
           <span>
             <strong>{posterItems.length ? `${posterItems.length}장 등록 예정` : "포스터를 여기에 끌어다 놓으세요"}</strong>
-            <small>{posterItems.length ? "이미지를 추가하려면 클릭하거나 파일을 끌어오세요." : "또는 클릭해서 여러 장 선택 · JPG, PNG, WEBP · 장당 10MB · 최대 10장"}</small>
+            <small>{isOptimizing ? "가로 800px WebP로 최적화하고 있습니다." : posterItems.length ? "이미지를 추가하려면 클릭하거나 파일을 끌어오세요." : "여러 장 선택 · 가로 최대 800px WebP 자동 최적화 · 최대 10장"}</small>
           </span>
         </label>
         <input
@@ -199,7 +217,7 @@ export function ScheduleForm({
           accept="image/jpeg,image/png,image/webp"
           onChange={(event) => {
             const files = Array.from(event.target.files ?? []);
-            addPosterFiles(files);
+            void addPosterFiles(files);
           }}
         />
         {posterError && <small className="form-error" role="alert">{posterError}</small>}
@@ -230,9 +248,9 @@ export function ScheduleForm({
 
       <div className="form-actions">
         <Link href="/admin" className="secondary-button">취소</Link>
-        <button className="primary-button" type="submit" disabled={isPending}>
-          {isPending && <LoaderCircle className="spin" size={16} />}
-          {isPending ? (schedule ? "저장 중..." : "등록 중...") : (schedule ? "변경사항 저장" : "일정 등록")}
+        <button className="primary-button" type="submit" disabled={isPending || isOptimizing}>
+          {(isPending || isOptimizing) && <LoaderCircle className="spin" size={16} />}
+          {isOptimizing ? "이미지 최적화 중..." : isPending ? (schedule ? "저장 중..." : "등록 중...") : (schedule ? "변경사항 저장" : "일정 등록")}
         </button>
       </div>
       {state.error && <p className="form-error admin-form-error" role="alert">{state.error}</p>}

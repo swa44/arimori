@@ -559,37 +559,36 @@ function aboutStageKey(value: FormDataEntryValue | null): AboutStageKey | null {
   return aboutStages.some((stage) => stage.key === key) ? key as AboutStageKey : null;
 }
 
-export async function uploadAboutStageImages(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
+export async function registerAboutStageImages(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
   const { supabase, user } = await requireAdmin();
   const stageKey = aboutStageKey(formData.get("stage_key"));
-  const files = formData.getAll("stage_images").filter((item): item is File => item instanceof File && item.size > 0);
+  const imagePaths = parseStringArray(formData.get("image_paths"));
   if (!stageKey) return { error: "무대 종류를 확인할 수 없습니다." };
-  if (!files.length) return { error: "등록할 사진을 선택해 주세요." };
-  if (files.length > 10) return { error: "사진은 한 번에 최대 10장까지 등록할 수 있습니다." };
-  for (const file of files) {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return { error: "JPG, PNG, WEBP 이미지 파일만 등록할 수 있습니다." };
-    if (file.size > 10 * 1024 * 1024) return { error: "사진은 장당 10MB 이하로 등록해 주세요." };
-  }
-  const { count } = await supabase.from("ARIMORI_about_stage_images").select("id", { count: "exact", head: true }).eq("stage_key", stageKey);
-  if ((count ?? 0) + files.length > 20) return { error: "무대별 사진은 최대 20장까지 등록할 수 있습니다." };
+  if (!imagePaths.length) return { error: "등록할 사진 정보를 확인할 수 없습니다." };
+  if (imagePaths.length > 10 || new Set(imagePaths).size !== imagePaths.length) return { error: "사진은 중복 없이 한 번에 최대 10장까지 등록할 수 있습니다." };
 
-  const uploaded: string[] = [];
-  try {
-    for (const file of files) {
-      const path = `about-stages/${stageKey}/${user.id}/${safeFileName(file.name)}`;
-      const { error: uploadError } = await supabase.storage.from("ARIMORI_site_images").upload(path, file, { contentType: file.type, upsert: false });
-      if (uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`);
-      uploaded.push(path);
-    }
-    const rows = uploaded.map((imagePath, index) => ({ stage_key: stageKey, image_path: imagePath, display_order: (count ?? 0) + index, created_by: user.id }));
-    const { error } = await supabase.from("ARIMORI_about_stage_images").insert(rows);
-    if (error) throw new Error(`사진 정보 저장 실패: ${error.message}`);
-  } catch (error) {
-    if (uploaded.length) await supabase.storage.from("ARIMORI_site_images").remove(uploaded);
-    return actionError(error);
+  const storageFolder = `about-stages/${stageKey}/${user.id}`;
+  if (imagePaths.some((path) => !path.startsWith(`${storageFolder}/`) || !path.endsWith(".webp"))) {
+    return { error: "등록할 사진 경로가 올바르지 않습니다." };
   }
+
+  const { data: storedFiles, error: storageError } = await supabase.storage
+    .from("ARIMORI_site_images")
+    .list(storageFolder, { limit: 100 });
+  if (storageError) return { error: `업로드 사진 확인 실패: ${storageError.message}` };
+  const storedNames = new Set((storedFiles ?? []).map((file) => file.name));
+  if (imagePaths.some((path) => !storedNames.has(path.split("/").pop() ?? ""))) {
+    return { error: "업로드가 완료되지 않은 사진이 있습니다." };
+  }
+
+  const { count } = await supabase.from("ARIMORI_about_stage_images").select("id", { count: "exact", head: true }).eq("stage_key", stageKey);
+  if ((count ?? 0) + imagePaths.length > 20) return { error: "무대별 사진은 최대 20장까지 등록할 수 있습니다." };
+
+  const rows = imagePaths.map((imagePath, index) => ({ stage_key: stageKey, image_path: imagePath, display_order: (count ?? 0) + index, created_by: user.id }));
+  const { error } = await supabase.from("ARIMORI_about_stage_images").insert(rows);
+  if (error) return { error: `사진 정보 저장 실패: ${error.message}` };
   revalidatePath("/about"); revalidatePath("/admin");
-  return { error: null, success: `${files.length}장의 사진을 등록했습니다.` };
+  return { error: null, success: `${imagePaths.length}장의 사진을 등록했습니다.` };
 }
 
 export async function reorderAboutStageImages(_state: AdminActionState, formData: FormData): Promise<AdminActionState> {
