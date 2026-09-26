@@ -388,6 +388,23 @@ main {
   z-index: 1000;
 }
 
+.bottom-nav::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(246, 241, 231, 0),
+    rgba(241, 241, 241, 0.78) 58%,
+    #f1f1f1 100%
+  );
+  bottom: calc(-10px - env(safe-area-inset-bottom));
+  content: "";
+  height: calc(52px + env(safe-area-inset-bottom));
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 0;
+}
+
 @media (max-width: 600px) {
   html {
     background: var(--paper);
@@ -418,6 +435,8 @@ body:has(
   grid-template-columns: repeat(5, 1fr);
   min-height: var(--nav-height);
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .bottom-nav__item {
