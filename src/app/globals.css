@@ -374,10 +374,12 @@ main {
 }
 
 .bottom-nav {
-  bottom: calc(10px + env(safe-area-inset-bottom));
+  background: #f1f1f1;
+  border-top: 1px solid rgba(74, 68, 57, 0.1);
+  bottom: 0;
   left: 50%;
   max-width: 600px;
-  padding: 0 12px;
+  padding: 3px 12px env(safe-area-inset-bottom);
   position: fixed;
   transform: translate3d(-50%, 0, 0);
   transition:
@@ -386,23 +388,6 @@ main {
   width: 100%;
   will-change: transform;
   z-index: 1000;
-}
-
-.bottom-nav::before {
-  background: linear-gradient(
-    to bottom,
-    rgba(246, 241, 231, 0),
-    rgba(241, 241, 241, 0.78) 58%,
-    #f1f1f1 100%
-  );
-  bottom: calc(-10px - env(safe-area-inset-bottom));
-  content: "";
-  height: calc(52px + env(safe-area-inset-bottom));
-  left: 0;
-  pointer-events: none;
-  position: absolute;
-  right: 0;
-  z-index: 0;
 }
 
 @media (max-width: 600px) {
@@ -426,17 +411,11 @@ body:has(
 
 .bottom-nav__inner {
   align-items: center;
-  backdrop-filter: blur(18px);
-  background: rgba(255, 253, 248, 0.92);
-  border: 1px solid rgba(112, 83, 61, 0.11);
-  border-radius: 23px;
-  box-shadow: 0 12px 42px rgba(54, 46, 34, 0.18);
+  background: transparent;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   min-height: var(--nav-height);
   overflow: hidden;
-  position: relative;
-  z-index: 1;
 }
 
 .bottom-nav__item {
